@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Trade Dashboard — Bitcoin</title>
+<meta name="description" content="Painel de controle de operações de Bitcoin: saldo, custo médio, FIFO, lucro realizado, gráficos e importação de planilhas.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  :root{
+    --primary: rgba(0, 255, 247, 0.47);
+    --primary-solid: #22d3ee;
+    --success: #32d74b6a;
+    --success-solid: #22c55e;
+    --warning: #FF9F0A;
+    --danger: #fb7185;
+    --bg-deep: #020617;
+    --glass: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #22c55e;
+    --accent-hover: #16a34a;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    --font-sans: -apple-system, 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --gold: #22d3ee; --gold2: #a5f3fc; --gain: #22c55e; --loss: #fb7185;
+    --fg: #f8fafc; --mut: #94a3b8; --blue: #38bdf8;
+    --bg: #020617; --card: rgba(255,255,255,0.05); --card2: rgba(255,255,255,0.08);
+    --radius: 20px;
+  }
+  html{ color-scheme:dark; }
+  body{ text-align:left; background-color:#020617;
+    background-image:
+      radial-gradient(900px 500px at 8% -5%, rgba(34,197,94,0.14), transparent 60%),
+      radial-gradient(1000px 600px at 95% 105%, rgba(34,197,94,0.10), transparent 60%),
+      radial-gradient(700px 420px at 85% 10%, rgba(34,211,238,0.08), transparent 60%);
+    background-attachment:fixed;
+    color:var(--text-main);
+    font-family:var(--font-sans);
+    margin:0; padding:0; -webkit-font-smoothing:antialiased; min-height:100vh; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:22px 18px 48px; }
+  .panel{ background:var(--glass); border:1px solid var(--glass-border);
+    border-radius:20px; box-shadow:var(--shadow);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+  .pad{ padding:20px; }
+  .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .gold-text{ background:linear-gradient(135deg,#a5f3fc,#22d3ee 45%,#4ade80); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header.top{ position:sticky; top:12px; z-index:50; display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:24px;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:0 20px 40px rgba(0,0,0,0.5); }
+  .brand{ display:flex; gap:12px; align-items:center; }
+  .logo{ width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(34,197,94,.22)); border:1px solid rgba(34,211,238,.45); font-size:24px; color:#a5f3fc; font-weight:800;
+    box-shadow:0 0 24px rgba(34,211,238,.25); }
+  h1{ font-size:21px; margin:0; letter-spacing:-.01em; }
+  .sub{ font-size:12px; color:var(--text-muted); margin:3px 0 0; }
+  .toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .btn{ appearance:none; border:1px solid rgba(34,211,238,.55); border-radius:12px; padding:9px 13px; font-size:13px; font-weight:700;
+    font-family:var(--font-sans);
+    cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:#02252b; background:linear-gradient(135deg,#a5f3fc,#22d3ee);
+    box-shadow:0 0 18px rgba(34,211,238,.28); transition:transform .15s ease, box-shadow .15s ease, filter .15s ease, border-color .15s ease; }
+  .btn:hover{ filter:brightness(1.06); transform:translateY(-1px); box-shadow:0 0 26px rgba(34,211,238,.4); }
+  .btn:active{ transform:translateY(0); }
+  .btn-sec{ background:rgba(34,197,94,.14); color:#bbf7d0; border-color:rgba(34,197,94,.4); box-shadow:none; }
+  .btn-sec:hover{ border-color:var(--success-solid); box-shadow:0 0 18px rgba(34,197,94,.25); }
+  .btn-ghost{ background:rgba(255,255,255,.04); color:var(--text-main); border-color:var(--glass-border); box-shadow:none; }
+  .btn-ghost:hover{ border-color:var(--primary-solid); box-shadow:0 0 16px rgba(34,211,238,.22); }
+  .btn-danger{ background:rgba(251,113,133,.08); color:var(--danger); border-color:rgba(251,113,133,.45); box-shadow:none; }
+  .btn-danger:hover{ background:rgba(251,113,133,.16); box-shadow:0 0 16px rgba(251,113,133,.25); }
+  .btn-sm{ padding:6px 10px; font-size:12px; }
+  .btn-icon{ padding:7px 9px; }
+  .btn[disabled]{ opacity:.55; cursor:wait; }
+  .grid2{ display:grid; gap:16px; grid-template-columns:1fr; }
+  @media(min-width:860px){ .grid2{ grid-template-columns:1fr 1fr; } }
+  .kpis{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media(min-width:640px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
+  @media(min-width:1024px){ .kpis{ grid-template-columns:repeat(4,1fr); } }
+  .kpi{ border-radius:20px; padding:18px; position:relative; overflow:hidden; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+  .kpi::before{ content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(420px 160px at 20% 0%, rgba(34,211,238,.12), transparent 65%); }
+  .kpi:hover{ transform:translateY(-2px); border-color:rgba(34,211,238,.35); box-shadow:0 24px 48px rgba(0,0,0,.55), 0 0 22px rgba(34,211,238,.12); }
+  .kpi .t{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:flex; justify-content:space-between; gap:8px; align-items:center; position:relative; }
+  .kpi .v{ margin-top:10px; font-size:24px; font-weight:700; font-family:var(--font-mono); letter-spacing:-.01em; color:var(--text-main); overflow-wrap:anywhere; position:relative; }
+  .kpi .d{ margin-top:6px; font-size:12px; color:var(--text-muted); position:relative; }
+  .tom-ouro .v{ color:#a5f3fc; } .tom-alta .v{ color:#4ade80; } .tom-baixa .v{ color:var(--danger); }
+  .hero-total{ border-radius:20px; padding:22px; position:relative; overflow:hidden;
+    background:linear-gradient(135deg, rgba(34,211,238,.10), rgba(34,197,94,.08) 55%, rgba(255,255,255,.03));
+    border:1px solid rgba(34,211,238,.35); box-shadow:0 24px 48px rgba(0,0,0,.55), 0 0 28px rgba(34,211,238,.12); }
+  .hero-total::before{ content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(560px 200px at 15% 0%, rgba(34,211,238,.16), transparent 65%); }
+  .hero-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; position:relative; }
+  .hero-label{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); }
+  .hero-fontes{ font-size:11px; color:var(--text-muted); font-weight:700; letter-spacing:.04em; }
+  .hero-valor{ margin-top:8px; font-size:clamp(30px,5vw,44px); font-weight:800; font-family:var(--font-mono);
+    letter-spacing:-.02em; color:var(--text-main); overflow-wrap:anywhere; position:relative; }
+  .hero-valor small{ font-size:.42em; font-weight:700; color:var(--text-muted); margin-right:6px; vertical-align:baseline; letter-spacing:0; }
+  .hero-sub{ margin-top:6px; font-size:13px; color:#a5f3fc; font-family:var(--font-mono); position:relative; }
+  .hero-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; position:relative; }
+  .hero-chip{ border:1px solid rgba(34,211,238,.35); background:rgba(2,6,23,.55); border-radius:999px;
+    padding:7px 12px; font-size:12px; font-weight:700; color:var(--text-main); display:inline-flex; gap:8px; align-items:center; }
+  .hero-chip b{ letter-spacing:.03em; }
+  .hero-chip .num{ color:#a5f3fc; }
+  .hero-chip.fiat{ border-color:rgba(34,197,94,.45); }
+  .hero-chip.fiat .num{ color:#4ade80; }
+  .hero-note{ margin:10px 0 0; position:relative; }
+  .tabsnav{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:8px;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:var(--shadow); }
+  @media(min-width:860px){ .tabsnav{ display:inline-grid; grid-template-columns:repeat(6,auto); } }
+  .tabsnav button{ border:1px solid transparent; background:transparent; color:var(--text-muted); border-radius:12px; padding:9px 18px; font-size:13px; font-weight:600; font-family:var(--font-sans); cursor:pointer; transition:all .15s ease; white-space:nowrap; }
+  .tabsnav button:hover{ color:var(--text-main); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.08); }
+  .tabsnav button.on{ background:linear-gradient(135deg,#f8fafc,#e2e8f0); color:#020617; border-color:transparent; box-shadow:0 0 20px rgba(34,211,238,.35); font-weight:800; }
+  label.lbl{ display:block; font-size:12px; font-weight:700; color:var(--text-main); margin:0 0 6px; }
+  .hint{ font-size:12px; color:var(--text-muted); line-height:1.5; }
+  input.inp, select.inp, textarea.inp{ width:100%; box-sizing:border-box; background:rgba(2,6,23,.6); border:1px solid var(--glass-border);
+    color:var(--text-main); border-radius:12px; padding:10px 12px; font-size:13px; font-family:var(--font-sans);
+    transition:border-color .15s ease, box-shadow .15s ease; }
+  input.inp:focus, select.inp:focus, textarea.inp:focus{ outline:none; border-color:#22d3ee; box-shadow:0 0 0 3px rgba(34,211,238,.18); }
+  select.inp option{ background:#0f172a; color:var(--text-main); }
+  .filters{ display:grid; gap:12px; grid-template-columns:1fr 1fr; }
+  @media(min-width:860px){ .filters{ grid-template-columns:repeat(4,1fr); } }
+  .tblwrap{ overflow-x:auto; border-radius:20px; background:rgba(2,6,23,.45); border:1px solid var(--glass-border); }
+  table.tbl{ width:100%; min-width:920px; border-collapse:collapse; font-size:13px; }
+  .tbl thead th{ background:rgba(255,255,255,.06); color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; text-align:left; padding:12px; white-space:nowrap; position:sticky; top:0; z-index:2; border-bottom:1px solid var(--glass-border); }
+  .tbl thead th.r, .tbl td.r{ text-align:right; }
+  .tbl td{ padding:11px 12px; border-top:1px solid rgba(255,255,255,.07); vertical-align:top; }
+  .tbl tbody tr{ transition:background .12s ease; }
+  .tbl tbody tr:hover{ background:rgba(34,211,238,.06); }
+  .tbl tbody tr:nth-child(even){ background:rgba(255,255,255,.018); }
+  .tag{ display:inline-block; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:800; letter-spacing:.03em; border:1px solid transparent; }
+  .tag.c{ background:rgba(34,197,94,.16); color:#4ade80; border-color:rgba(34,197,94,.35); }
+  .tag.v{ background:rgba(251,113,133,.14); color:#fda4af; border-color:rgba(251,113,133,.4); }
+  .mini{ font-size:11px; color:var(--text-muted); display:block; max-width:180px; overflow-wrap:anywhere; font-family:var(--font-mono); }
+  .charts{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media(min-width:900px){ .charts{ grid-template-columns:1fr 1fr; } }
+  .chartbox{ border-radius:20px; padding:18px; }
+  .chartbox h3{ margin:0 0 12px; font-size:13px; font-weight:700; color:var(--text-main); }
+  .chartbox canvas{ width:100% !important; height:250px !important; }
+  .legend{ display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--text-muted); margin-top:10px; }
+  .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; box-shadow:0 0 8px rgba(255,255,255,.2); }
+  .modal-ov{ position:fixed; inset:0; background:rgba(2,6,23,.72); display:flex; align-items:flex-start; justify-content:center;
+    padding:24px 12px; z-index:60; overflow-y:auto; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+  .modal{ width:100%; max-width:640px; }
+  .modal.wide{ max-width:780px; }
+  .modal .body{ padding:20px; display:flex; flex-direction:column; gap:14px; }
+  .modal h2{ margin:0; font-size:17px; letter-spacing:-.01em; } .modal p.desc{ margin:4px 0 0; font-size:13px; color:var(--text-muted); }
+  .row2{ display:grid; gap:10px; grid-template-columns:1fr 1fr; }
+  @media(max-width:560px){ .row2{ grid-template-columns:1fr; } }
+  .typtog{ display:flex; gap:8px; }
+  .typtog button{ flex:1; border-radius:12px; border:1px solid var(--glass-border); background:rgba(255,255,255,.04); color:var(--text-muted); padding:10px; font-weight:800; font-family:var(--font-sans); cursor:pointer; transition:all .15s ease; }
+  .typtog button.on-c{ border-color:var(--success-solid); background:rgba(34,197,94,.16); color:#4ade80; box-shadow:0 0 14px rgba(34,197,94,.25); }
+  .typtog button.on-v{ border-color:var(--danger); background:rgba(251,113,133,.14); color:#fda4af; box-shadow:0 0 14px rgba(251,113,133,.25); }
+  .typtog button.on-t{ border-color:#38bdf8; background:rgba(56,189,248,.14); color:#bae6fd; box-shadow:0 0 14px rgba(56,189,248,.25); }
+  .cortog{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cortog button{ border-radius:12px; border:1px solid var(--glass-border); background:rgba(255,255,255,.04); color:var(--text-muted); padding:9px; font-weight:700; font-size:13px; font-family:var(--font-sans); cursor:pointer; transition:all .15s ease; }
+  .cortog button.on{ border-color:#22d3ee; background:rgba(34,211,238,.14); color:#a5f3fc; box-shadow:0 0 14px rgba(34,211,238,.2); }
+  .drop{ border:1px dashed rgba(34,211,238,.4); border-radius:16px; padding:26px; text-align:center; background:rgba(34,211,238,.04); }
+  .prev-tbl{ max-height:250px; overflow:auto; border:1px solid var(--glass-border); border-radius:12px; background:rgba(0,0,0,.55); font-family:var(--font-mono); }
+  .prev-tbl table{ width:100%; border-collapse:collapse; font-size:12px; font-family:var(--font-mono); }
+  .prev-tbl th{ position:sticky; top:0; background:#020617; color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding:9px; text-align:left; border-bottom:1px solid var(--glass-border); }
+  .prev-tbl td{ padding:8px 9px; border-top:1px solid rgba(255,255,255,.06); color:var(--text-main); }
+  #toastCtn{ position:fixed; bottom:16px; right:16px; z-index:99; display:flex; flex-direction:column; gap:8px; max-width:min(360px,90vw); }
+  .toast{ background:rgba(2,6,23,.92); border:1px solid var(--glass-border); border-left:4px solid #22d3ee; color:var(--text-main);
+    border-radius:12px; padding:11px 14px; font-size:13px; box-shadow:var(--shadow);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); font-family:var(--font-mono); }
+  .toast.ok{ border-left-color:var(--success-solid); } .toast.err{ border-left-color:var(--danger); }
+  .analist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; font-size:14px; color:var(--text-muted); line-height:1.6; }
+  .analist b, .analist .hl{ color:#a5f3fc; }
+  footer.foot{ text-align:center; font-size:12px; color:var(--text-muted); padding:20px 0 8px; }
+  .imgprev{ max-width:220px; width:100%; border-radius:12px; border:1px solid var(--glass-border); }
+  .spin{ display:inline-block; width:14px; height:14px; border:2px solid rgba(34,211,238,.3); border-top-color:#22d3ee; border-radius:50%; animation:sp 0.8s linear infinite; vertical-align:-2px; }
+  @keyframes sp{ to{ transform:rotate(360deg); } }
+  .btn:focus-visible, .tabsnav button:focus-visible, input.inp:focus-visible, select.inp:focus-visible, textarea.inp:focus-visible{ outline:2px solid #22d3ee; outline-offset:2px; }
+  input[type="checkbox"]{ accent-color:#22c55e; width:15px; height:15px; }
+  @media(max-width:640px){
+    .wrap{ padding:14px 12px 40px; }
+    header.top{ top:8px; border-radius:20px; }
+    .pad{ padding:16px; }
+    .toolbar .btn{ flex:1 1 auto; justify-content:center; }
+    .kpi .v{ font-size:21px; }
+  }
+  @media print{
+    @page{ size:A4 landscape; margin:10mm; }
+    html, body{ background:#fff !important; background-image:none !important; color:#111 !important; }
+    .no-print{ display:none !important; }
+    .wrap{ max-width:none; padding:0; }
+    .panel, .kpi, .chartbox{ background:#fff !important; border:1px solid #bbb !important; box-shadow:none !important; color:#111 !important; }
+    .panel *, .kpi *{ color:#111 !important; }
+    .tabsnav{ display:none !important; }
+    [data-panel]{ display:block !important; margin-bottom:12px; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="wrap" id="painelEl">
+  <header class="panel pad top no-print-off">
+    <div class="brand">
+      <div class="logo">₿</div>
+      <div>
+        <h1><span class="gold-text">Crypto Trade Dashboard</span></h1>
+        <p class="sub">Bitcoin · controle de posição e resultado</p>
+      </div>
+    </div>
+    <div class="toolbar no-print" id="toolbarEl">
+      <button class="btn" id="novaOpBtn">＋ Registrar operação</button>
+      <button class="btn btn-sec" id="imgOpBtn">Importar por imagem</button>
+      <button class="btn btn-sec" id="impOpBtn">Importar operações</button>
+      <button class="btn btn-sec" id="csvBtn">Exportar CSV</button>
+      <button class="btn btn-sec" id="bkpBtn">Backup</button>
+      <button class="btn btn-ghost" id="rstBtn">Restaurar</button>
+      <button class="btn btn-ghost" id="prtBtn">Imprimir / PDF</button>
+      <button class="btn btn-ghost" id="pngBtn">Capturar PNG</button>
+    </div>
+  </header>
+
+  <div style="height:14px"></div>
+
+  <section class="panel pad grid2">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <label class="lbl" style="margin:0">Referência de mercado Binance (BTC/BRL)</label>
+        <button class="btn btn-ghost btn-sm no-print" id="binRefreshBtn">Atualizar agora</button>
+      </div>
+      <div style="border:1px solid var(--glass-border);border-radius:16px;background:rgba(255,255,255,.03);padding:14px;margin-top:10px;">
+        <p class="num" id="binPrecoEl" style="margin:0;font-size:18px;font-weight:700;color:var(--gold)">Carregando…</p>
+        <p class="hint" id="binMetaEl" style="margin:6px 0 0">Fonte: Binance · a cada 30s</p>
+        <p class="hint" id="binErrEl" style="display:none;color:var(--loss);margin:6px 0 0">Binance indisponível — use a cotação manual abaixo.</p>
+      </div>
+      <div class="no-print" style="margin-top:10px">
+        <label class="lbl hint" for="cotacaoInput">Cotação manual (fallback — substitui a Binance quando preenchida)</label>
+        <input class="inp num" id="cotacaoInput" inputmode="decimal" placeholder="ex.: 420298,36" autocomplete="off">
+      </div>
+      <p class="hint" id="cotacaoUsoEl" style="margin:8px 0 0">Sem cotação — valor de mercado e P/L não realizado indisponíveis.</p>
+    </div>
+    <div>
+      <label class="lbl" for="metodoSelect">Método de apuração de custo</label>
+      <select class="inp" id="metodoSelect">
+        <option value="MEDIO">Custo médio ponderado</option>
+        <option value="FIFO">FIFO (primeiro que entra, primeiro que sai)</option>
+      </select>
+      <p class="hint">A venda bruta não é lucro: o resultado usa o custo das moedas vendidas.</p>
+      <p class="hint" id="contaEl"></p>
+    </div>
+  </section>
+
+  <div style="height:14px"></div>
+
+  <nav class="tabsnav no-print" id="tabsNav">
+    <button data-tab="resumo" class="on">Resumo</button>
+    <button data-tab="operacoes">Operações</button>
+    <button data-tab="graficos">Gráficos</button>
+    <button data-tab="analise">Análise</button>
+    <button data-tab="relatorios">Relatórios</button>
+    <button data-tab="config">Configurações</button>
+  </nav>
+
+  <div style="height:12px"></div>
+
+  <section data-panel="resumo">
+    <p class="hint" id="resumoNotaEl">Resumo consolidado de todas as corretoras.</p>
+    <div class="panel hero-total" id="posTotalHero"></div>
+    <div style="height:12px"></div>
+    <div class="kpis" id="kpiGrid1"></div>
+    <div style="height:12px"></div>
+    <div class="kpis" id="kpiGrid2" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))"></div>
+  </section>
+
+  <section data-panel="operacoes" hidden>
+    <div class="panel pad no-print">
+      <div class="filters">
+        <div><label class="lbl" for="fCorretora">Local (corretora/wallet)</label><select class="inp" id="fCorretora"><option value="TODAS">Todas (consolidado)</option></select></div>
+        <div><label class="lbl" for="fTipo">Tipo</label><select class="inp" id="fTipo"><option value="TODOS">Todas</option><option value="COMPRA">Somente compras</option><option value="VENDA">Somente vendas</option><option value="TRANSFERENCIA">Somente transferências</option></select></div>
+        <div><label class="lbl" for="fOrigem">Origem da compra</label><select class="inp" id="fOrigem"><option value="TODAS">Todas as origens</option></select></div>
+        <div><label class="lbl" for="fDestino">Destino da venda</label><select class="inp" id="fDestino"><option value="TODOS">Todos os destinos</option></select></div>
+        <div><label class="lbl" for="fDe">De</label><input class="inp" id="fDe" type="date"></div>
+        <div><label class="lbl" for="fAte">Até</label><input class="inp" id="fAte" type="date"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-ghost" id="limpaFiltrosBtn" style="width:100%;justify-content:center">Limpar filtros</button></div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="panel tblwrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>Data</th><th>Tipo</th><th>Local</th><th class="r">BTC</th><th class="r">Valor R$</th>
+          <th class="r">Cotação</th><th class="r">Taxa</th><th class="r">Saldo após</th><th class="r">Resultado</th><th class="no-print"></th>
+        </tr></thead>
+        <tbody id="opsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section data-panel="graficos" hidden>
+    <div class="charts">
+      <div class="panel chartbox"><h3>Evolução do saldo em BTC</h3><canvas id="chSaldo"></canvas></div>
+      <div class="panel chartbox"><h3>Cotação x custo médio (BRL/BTC)</h3><canvas id="chCotacao"></canvas></div>
+      <div class="panel chartbox"><h3>Compras e vendas por operação (R$)</h3><canvas id="chBarras"></canvas></div>
+      <div class="panel chartbox"><h3>Lucro realizado acumulado (R$)</h3><canvas id="chAcumulado"></canvas></div>
+      <div class="panel chartbox"><h3>Volume financeiro</h3><canvas id="chVolume"></canvas><div class="legend" id="volLegend"></div></div>
+      <div class="panel chartbox"><h3>Alocação de BTC por corretora</h3><canvas id="chAlocacao"></canvas><div class="legend" id="alocLegend"></div></div>
+    </div>
+    <p class="hint" id="chartsHint" style="margin-top:8px"></p>
+  </section>
+
+  <section data-panel="analise" hidden>
+    <div class="panel pad">
+      <h2 style="margin:0 0 10px;font-size:16px">Leitura do resultado</h2>
+      <ul class="analist" id="anaLista"></ul>
+    </div>
+    <div style="height:12px"></div>
+    <div class="kpis" id="anaKpis" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))"></div>
+  </section>
+
+  <section data-panel="relatorios" hidden>
+    <div class="panel pad">
+      <div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap">
+        <div><h2 style="margin:0;font-size:16px">Relatórios</h2>
+        <p class="hint" id="relNotaEl" style="margin:4px 0 0"></p></div>
+        <div class="toolbar no-print">
+          <button class="btn btn-sec btn-sm" id="relCsvBtn">Exportar mensal (CSV)</button>
+          <button class="btn btn-ghost btn-sm" id="relPrintBtn">Imprimir / PDF</button>
+        </div>
+      </div>
+      <h3 style="margin:16px 0 8px;font-size:13px">Resultado realizado por mês (competência da venda)</h3>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Mês</th><th class="r">Vendas</th><th class="r">Nº vendas</th><th class="r">Custo</th><th class="r">Lucro</th><th class="r">Acumulado</th></tr></thead>
+        <tbody id="relMensalBody"></tbody>
+      </table></div>
+      <p class="hint">O lucro realizado usa o método selecionado (custo médio ou FIFO) e considera o custo das moedas vendidas. Útil para a apuração mensal do IR.</p>
+      <h3 style="margin:16px 0 8px;font-size:13px">Posição por local (corretoras e wallets)</h3>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Local</th><th class="r">Saldo BTC</th><th class="r">Custo (R$)</th><th class="r">Médio (R$/BTC)</th><th class="r">Valor mercado</th><th class="r">P/L aberto</th></tr></thead>
+        <tbody id="relPosBody"></tbody>
+      </table></div>
+      <h3 style="margin:16px 0 8px;font-size:13px">Transferências no período</h3>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Data</th><th>Origem → destino</th><th class="r">Total BTC</th><th class="r">Taxa rede</th><th class="r">Recebido</th><th class="r">Cotação</th><th>Hash</th></tr></thead>
+        <tbody id="relTransfBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section data-panel="config" hidden>
+    <div class="panel pad">
+      <h2 style="margin:0;font-size:16px">Dados e backup</h2>
+      <p class="hint">Tudo fica salvo neste navegador (armazenamento local). Use backup em JSON para levar os dados para outro aparelho.</p>
+      <div class="toolbar">
+        <button class="btn btn-sec" id="csvBtn2">Exportar CSV</button>
+        <button class="btn btn-sec" id="bkpBtn2">Baixar backup JSON</button>
+        <button class="btn btn-ghost" id="rstBtn2">Restaurar backup</button>
+        <button class="btn btn-danger" id="resetBtn">Voltar às 4 operações iniciais</button>
+      </div>
+      <div style="border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.06);border-radius:16px;padding:16px;margin-top:14px">
+        <p style="color:var(--fg);font-weight:700;margin:0 0 6px;font-size:14px">Saldo inicial / ajuste de saldo por corretora</p>
+        <p class="hint" style="margin:0 0 12px">Use quando você já tinha BTC antes da primeira operação lançada. O saldo inicial entra no cálculo como a primeira compra daquela corretora (afeta saldo, custo médio e P/L). Para o seu caso: informe a corretora, o saldo real e o custo — ou use a calculadora abaixo para achar a diferença.</p>
+        <div class="row2">
+          <div><label class="lbl">Corretora</label><input class="inp" id="iniCorretora" list="iniCorretoraList" placeholder="99Pay" autocomplete="off"><datalist id="iniCorretoraList"></datalist></div>
+          <div><label class="lbl">Data do saldo inicial</label><input class="inp" id="iniData" type="date" value="2026-01-01"></div>
+          <div><label class="lbl">BTC do saldo inicial</label><input class="inp num" id="iniBtc" inputmode="decimal" placeholder="0,01698463"></div>
+          <div><label class="lbl">Valor total pago (R$) — custo</label><input class="inp num" id="iniValor" inputmode="decimal" placeholder="0,00 — deixe 0 se não souber"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" id="iniSalvarBtn">Salvar saldo inicial</button>
+          <button class="btn btn-ghost" id="iniLimparBtn">Limpar campos</button>
+        </div>
+        <div style="border-top:1px solid var(--glass-border);margin-top:14px;padding-top:12px">
+          <label class="lbl">Calculadora: ajustar para o saldo real da corretora</label>
+          <div class="row2">
+            <div><label class="lbl hint">Saldo real hoje na corretora (BTC)</label><input class="inp num" id="iniMeta" inputmode="decimal" placeholder="ex.: 0,01908286"></div>
+            <div style="display:flex;align-items:flex-end"><button class="btn btn-sec" id="iniCalcBtn" style="width:100%;justify-content:center">Calcular diferença e preencher</button></div>
+          </div>
+          <p class="hint" id="iniCalcInfo" style="margin:8px 0 0"></p>
+        </div>
+        <div id="iniLista" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div style="border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);border-radius:16px;padding:16px;margin-top:14px;font-size:13px;color:var(--mut)">
+        <p style="color:var(--gold);font-weight:700;margin:0 0 6px">Como obter dados das operações</p>
+        <p style="margin:0">Para registrar compras e vendas, use a tela da operação, o comprovante ou um screenshot fornecido pela corretora:</p>
+        <ul style="margin:8px 0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+          <li><b style="color:var(--fg)">Registrar operação</b> — formulário rápido com tipo, data/hora, valor, BTC, preço executado, taxa, observação e print opcional.</li>
+          <li><b style="color:var(--fg)">Importar por imagem</b> — lê o screenshot no próprio navegador e mostra os campos para você conferir e corrigir antes de salvar.</li>
+        </ul>
+        <p style="margin:8px 0 0">O preço da corretora pode diferir da referência Binance (spread/preço próprio). A análise de P/L considera o preço efetivamente executado na operação.</p>
+      </div>
+      <div style="border:1px solid var(--glass-border);border-radius:16px;padding:16px;margin-top:12px;font-size:13px;color:var(--mut)">
+        <p style="color:var(--fg);font-weight:700;margin:0 0 6px">Modelo de planilha aceito</p>
+        <p style="margin:0">Colunas: Data · Tipo (compra/venda) · BTC · Valor · Cotação · Taxa. Aceita CSV e XLSX, números no formato brasileiro e datas dd/mm/aaaa. Linhas iguais às já existentes são marcadas como duplicadas na prévia.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">Painel informativo de controle pessoal · valores conferidos a partir das operações cadastradas</footer>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastCtn"></div>
+<input type="file" id="fileRestaurar" accept="application/json" hidden>
+<input type="file" id="fileImport" accept=".csv,.xlsx,.xls,text/csv" hidden>
+<input type="file" id="fileImagem" accept="image/*" hidden>
+
+<script>
+"use strict";
+/* ============ utils / engine (port of src/lib/trade.ts) ============ */
+const $ = (id) => document.getElementById(id);
+const CORRETORA_PADRAO = "99Pay";
+const corretoraDe = (o) => ((o.corretora || "").trim() || CORRETORA_PADRAO);
+const CHAVE = "crypto-trade-99pay-v1";
+const CHAVE_COT = "crypto-trade-99pay-cotacao-v1";
+const BIN_URL = "https://api.binance.com/api/v3/ticker/price?symbol=BTCBRL";
+
+const OPERACOES_INICIAIS = [
+  { id:"op-2026-09-15-c", data:"2026-09-15", tipo:"COMPRA", btc:0.00243155, brl:1000, cotacao:411258.68, taxa:0, origem:"99Pay" },
+  { id:"op-2026-09-20-v", data:"2026-09-20", tipo:"VENDA", btc:0.0001731761, brl:72.93, cotacao:421132.03, taxa:0, origem:"99Pay" },
+  { id:"op-2026-09-21-v", data:"2026-09-21", tipo:"VENDA", btc:0.00017330953, brl:72.92, cotacao:420750.10, taxa:0, origem:"99Pay" },
+  { id:"op-2026-09-22-c", data:"2026-09-22", tipo:"COMPRA", btc:0.00017368, brl:73, cotacao:420298.36, taxa:0, origem:"99Pay" },
+];
+
+const brl = (v) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number.isFinite(v)?v:0);
+const btcFmt = (v,casas=8) => new Intl.NumberFormat("pt-BR",{minimumFractionDigits:casas,maximumFractionDigits:11}).format(Number.isFinite(v)?v:0)+" BTC";
+const pct = (v) => (v>=0?"+":"")+new Intl.NumberFormat("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(v)?v:0)+"%";
+const dataBR = (iso) => { const p=String(iso||"").split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:String(iso); };
+const esc = (s) => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+function parseNumeroBR(valor){
+  if(typeof valor==="number") return Number.isFinite(valor)?valor:0;
+  if(valor==null) return 0;
+  let s=String(valor).trim(); if(!s) return 0;
+  s=s.replace(/[R$\s ]/gi,"").replace(/btc/gi,"");
+  const tv=s.includes(","), tp=s.includes(".");
+  if(tv&&tp){ s = s.lastIndexOf(",")>s.lastIndexOf(".") ? s.replace(/\./g,"").replace(",",".") : s.replace(/,/g,""); }
+  else if(tv){ s=s.replace(",","."); }
+  const n=Number(s); return Number.isFinite(n)?n:0;
+}
+function parseDataISO(valor){
+  if(valor instanceof Date && !isNaN(valor.getTime())) return valor.toISOString().slice(0,10);
+  if(typeof valor==="number"){
+    const d=new Date(Math.round((valor-25569)*86400*1000));
+    if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  }
+  const s=String(valor??"").trim();
+  const mp=s.toLowerCase().match(/(\d{1,2})\s+de\s+([a-zç]+)\.?\s+de\s+(\d{4})/);
+  if(mp){ const meses={jan:"01",fev:"02",mar:"03",abr:"04",mai:"05",jun:"06",jul:"07",ago:"08",set:"09",out:"10",nov:"11",dez:"12"};
+    const mm=meses[mp[2].slice(0,3)]; if(mm) return `${mp[3]}-${mm}-${mp[1].padStart(2,"0")}`; }
+  let m=s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
+  if(m){ const ano=m[3].length===2?`20${m[3]}`:m[3]; return `${ano}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`; }
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0];
+  return new Date().toISOString().slice(0,10);
+}
+function parseTipo(valor){ const s=String(valor??"").toLowerCase();
+  if(/(transfer|enviou|enviad|envio|retirada|saque|withdraw|taxa de rede|hash da transa)/.test(s)) return "TRANSFERENCIA";
+  return /(venda|sell|saida|saída|vender)/.test(s)?"VENDA":"COMPRA"; }
+const chaveDuplicidade = (o) => {
+  if(o.tipo==="TRANSFERENCIA") return [o.data,o.tipo,Number(o.btc).toFixed(11),Number(o.taxaBtc||0).toFixed(11),String(o.origem||""),String(o.destino||"")].join("|");
+  return [o.data,o.tipo,Number(o.btc).toFixed(11),Number(o.brl).toFixed(2)].join("|");
+};
+const normalizarOperacao = (o) => {
+  if(o && o.tipo==="TRANSFERENCIA") return {...o, tipo:"TRANSFERENCIA",
+    btc:Number(o.btc)||0, taxaBtc:Number(o.taxaBtc)||0, cotacao:Number(o.cotacao)||0,
+    brl:Number(o.brl)||0, taxa:Number(o.taxa)||0,
+    origem:String(o.origem||"").trim(), destino:String(o.destino||"").trim(),
+    data:o.data||hojeISO()};
+  return {...o, corretora:corretoraDe(o)};
+};
+const novoId = () => `op-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+const hojeISO = () => new Date().toISOString().slice(0,10);
+const agoraHM = () => new Date().toTimeString().slice(0,5);
+
+function calcular(operacoes, metodo, cotacaoAtual){
+  const ordenadas=[...operacoes].sort((a,b)=>a.data<b.data?-1:a.data>b.data?1:0);
+  let saldo=0, custoBase=0, lucroRealizado=0;
+  const lotes=[]; const linhas=[];
+  for(const op of ordenadas){
+    let custoBaseVenda=0, lucro=0;
+    if(op.tipo==="COMPRA"){
+      const ct=op.brl+op.taxa; saldo+=op.btc; custoBase+=ct;
+      lotes.push({btc:op.btc, custoUnit:op.btc>0?ct/op.btc:0});
+    }else if(op.tipo==="VENDA"){
+      let restante=op.btc;
+      if(metodo==="FIFO"){
+        while(restante>1e-15&&lotes.length>0){ const l=lotes[0]; const u=Math.min(l.btc,restante);
+          custoBaseVenda+=u*l.custoUnit; l.btc-=u; restante-=u; if(l.btc<=1e-15) lotes.shift(); }
+      }else{
+        const cm=saldo>0?custoBase/saldo:0; custoBaseVenda=op.btc*cm;
+        while(restante>1e-15&&lotes.length>0){ const l=lotes[0]; const u=Math.min(l.btc,restante);
+          l.btc-=u; restante-=u; if(l.btc<=1e-15) lotes.shift(); }
+      }
+      lucro=op.brl-op.taxa-custoBaseVenda; lucroRealizado+=lucro;
+      saldo-=op.btc; custoBase=Math.max(0,custoBase-custoBaseVenda);
+    }
+    linhas.push({...op, saldoAcumulado:saldo, custoBaseVenda, lucroRealizado:lucro, custoMedioApos:saldo>0?custoBase/saldo:0});
+  }
+  const totC=ordenadas.filter(o=>o.tipo==="COMPRA").reduce((s,o)=>s+o.brl,0);
+  const totV=ordenadas.filter(o=>o.tipo==="VENDA").reduce((s,o)=>s+o.brl,0);
+  const totT=ordenadas.reduce((s,o)=>s+o.taxa,0);
+  const capLiq=totC-totV+totT;
+  const cm=saldo>0?custoBase/saldo:0;
+  const carteira=cotacaoAtual?saldo*cotacaoAtual:0;
+  const naoReal=cotacaoAtual?carteira-custoBase:0;
+  return { linhas, saldoBTC:saldo, totalCompras:totC, totalVendas:totV, totalTaxas:totT,
+    capitalLiquido:capLiq, custoBaseRestante:custoBase, custoMedio:cm, lucroRealizado,
+    lucroNaoRealizado:naoReal, valorCarteira:carteira, plTotal:lucroRealizado+naoReal,
+    plPercentual:totC>0?((lucroRealizado+naoReal)/totC)*100:0,
+    qtdCompras:ordenadas.filter(o=>o.tipo==="COMPRA").length, qtdVendas:ordenadas.filter(o=>o.tipo==="VENDA").length };
+}
+function operacoesParaCSV(ops){
+  const cab=["Data","Tipo","BTC","Valor BRL","Cotacao BRL","Taxa BRL","Taxa BTC","Origem","Destino","Corretora","Origem da compra","Destino da venda","Hash"];
+  const campo=(v)=>/[;"\r\n]/.test(String(v??""))?`"${String(v??"").replace(/"/g,'""')}"`:String(v??"");
+  const fB=(v)=>(Number(v)||0).toFixed(11).replace(".",","), f2=(v)=>(Number(v)||0).toFixed(2).replace(".",",");
+  const ls=ops.map(o=>{ const tr=o.tipo==="TRANSFERENCIA";
+    return [dataBR(o.data),o.tipo,fB(o.btc),f2(o.brl),f2(o.cotacao),f2(o.taxa),tr?fB(o.taxaBtc||0):"",
+    ,tr?(o.origem||""):(o.origem||""),tr?(o.destino||""):"",campo(tr?"":corretoraDe(o)),campo(o.origemCompra??""),campo(o.destinoVenda??""),o.hash||""].join(";"); });
+  return [cab.join(";"),...ls].join("\n");
+}
+function baixarArquivo(nome,conteudo,tipo){
+  const blob=new Blob(["\uFEFF"+conteudo],{type:tipo});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function normalizarSaldosIniciais(raw){
+  if(!raw || typeof raw!=="object" || Array.isArray(raw)) return {};
+  const out={};
+  for(const [k,v] of Object.entries(raw)){
+    if(!v || typeof v!=="object") continue;
+    const btc=Number(v.btc), brl=Number(v.brl);
+    if(!Number.isFinite(btc) || btc<=-1e-12) continue;
+    const nome=String(k).trim()||CORRETORA_PADRAO;
+    out[nome]={ btc, brl:Number.isFinite(brl)&&brl>=0?brl:0, data:/^\d{4}-\d{2}-\d{2}$/.test(String(v.data||""))?v.data:"2026-01-01" };
+  }
+  return out;
+}
+function carregarEstado(){
+  try{ const raw=localStorage.getItem(CHAVE); if(!raw) return null;
+    const p=JSON.parse(raw); if(!Array.isArray(p.operacoes)) return null;
+    return { operacoes:p.operacoes.map(normalizarOperacao),
+      cotacaoManual:typeof p.cotacaoManual==="number"?p.cotacaoManual:null,
+      metodo:p.metodo==="FIFO"?"FIFO":"MEDIO",
+      saldosIniciais:normalizarSaldosIniciais(p.saldosIniciais) };
+  }catch{ return null; }
+}
+function salvarEstado(e){ try{ localStorage.setItem(CHAVE,JSON.stringify(e)); }catch{} }
+
+/* ============ toast / modal ============ */
+function toast(msg, kind=""){
+  const d=document.createElement("div"); d.className="toast "+kind; d.textContent=msg;
+  $("toastCtn").appendChild(d); setTimeout(()=>{ d.style.opacity="0"; setTimeout(()=>d.remove(),300); },3200);
+}
+function openModal(html, wide){
+  closeModal();
+  const ov=document.createElement("div"); ov.className="modal-ov"; ov.id="modalOv";
+  ov.innerHTML=`<div class="panel modal${wide?" wide":""}" role="dialog" aria-modal="true">${html}</div>`;
+  ov.addEventListener("mousedown",(e)=>{ if(e.target===ov) closeModal(); });
+  document.addEventListener("keydown", escClose);
+  $("modalRoot").appendChild(ov); return ov;
+}
+function escClose(e){ if(e.key==="Escape") closeModal(); }
+function closeModal(){ const o=$("modalOv"); if(o) o.remove(); document.removeEventListener("keydown",escClose); }
+
+/* ============ state ============ */
+let operacoes = OPERACOES_INICIAIS.map(o=>({...o}));
+let saldosIniciais = {};
+let metodo = "MEDIO";
+let cotacaoTexto = "";
+let bin = { preco:null, atualizadoEm:null, carregando:false, erro:false };
+let F = { tipo:"TODOS", corretora:"TODAS", origem:"TODAS", destino:"TODOS", de:"", ate:"" };
+let charts = {};
+let chartsReady = false;
+try{
+  const s=carregarEstado();
+  if(s){ operacoes=s.operacoes; metodo=s.metodo; saldosIniciais=s.saldosIniciais||{}; if(s.cotacaoManual!=null) cotacaoTexto=String(s.cotacaoManual); }
+}catch{}
+const cotacaoManualVal = () => { const n=parseNumeroBR(cotacaoTexto); return cotacaoTexto.trim()!==""&&n>0?n:null; };
+const cotacaoAtual = () => cotacaoManualVal() ?? bin.preco;
+function persist(){ salvarEstado({operacoes, saldosIniciais, metodo, cotacaoManual:cotacaoManualVal()}); }
+
+/* ============ derived (portfólio: compras/vendas + transferências) ============ */
+const locaisDe = (o) => {
+  if(o && o.tipo==="TRANSFERENCIA") return [String(o.origem||"").trim(), String(o.destino||"").trim()].filter(Boolean);
+  return [corretoraDe(o)];
+};
+const corretoras = () => [...new Set([...operacoes.flatMap(locaisDe), ...Object.keys(saldosIniciais)])].sort();
+const origensCompra = () => [...new Set(operacoes.filter(o=>o.tipo==="COMPRA").map(o=>(o.origemCompra||"").trim()).filter(Boolean))].sort();
+const destinosVenda = () => [...new Set(operacoes.filter(o=>o.tipo==="VENDA").map(o=>(o.destinoVenda||"").trim()).filter(Boolean))].sort();
+function inicialComoOp(nome){
+  const ini=saldosIniciais[nome];
+  if(!ini || !(ini.btc>1e-12)) return null;
+  return { id:`inicial-${nome}`, data:ini.data||"2026-01-01", tipo:"COMPRA", btc:ini.btc, brl:ini.brl||0,
+    cotacao:ini.btc>0?(ini.brl||0)/ini.btc:0, taxa:0, origem:"saldo inicial", corretora:nome,
+    observacao:"Saldo inicial / ajuste de saldo", isInicial:true };
+}
+function operacoesComInicial(lista, escopo){
+  const extras=[];
+  if(escopo && escopo!=="TODAS"){
+    const op=inicialComoOp(escopo); if(op) extras.push(op);
+  }else if(!escopo || escopo==="TODAS"){
+    for(const nome of Object.keys(saldosIniciais)){ const op=inicialComoOp(nome); if(op) extras.push(op); }
+  }
+  return [...extras, ...lista];
+}
+/* Remove qty de um pool {saldo,custo,lotes:[{btc,unit}]} e retorna o custo removido.
+   Espelha o comportamento de calcular(): FIFO usa custo real; MÉDIO usa custo médio
+   mas drena os lotes fisicamente na mesma ordem. */
+function removerDoPool(pool, qty, metodo){
+  let restante=qty, custoRem=0;
+  if(metodo==="FIFO"){
+    while(restante>1e-15&&pool.lotes.length>0){ const l=pool.lotes[0]; const u=Math.min(l.btc,restante);
+      custoRem+=u*l.unit; l.btc-=u; restante-=u; if(l.btc<=1e-15) pool.lotes.shift(); }
+  }else{
+    const cm=pool.saldo>0?pool.custo/pool.saldo:0; custoRem=qty*cm;
+    while(restante>1e-15&&pool.lotes.length>0){ const l=pool.lotes[0]; const u=Math.min(l.btc,restante);
+      l.btc-=u; restante-=u; if(l.btc<=1e-15) pool.lotes.shift(); }
+  }
+  return custoRem;
+}
+function novoPoolLocal(){ return {saldo:0,custo:0,lotes:[],compras:0,vendas:0,taxas:0,lucro:0,transfIn:0,transfOut:0,taxaRedeBtc:0,qtdC:0,qtdV:0}; }
+/* Passada cronológica única mantendo a piscina global (fiscal) e uma por local.
+   Sem transferências, os números são idênticos aos de calcular(). */
+function processarPortfolio(ops, metodo, cot){
+  const ordenadas=[...ops].sort((a,b)=>a.data<b.data?-1:a.data>b.data?1:0);
+  const G={saldo:0,custo:0,lotes:[],compras:0,vendas:0,taxas:0,lucro:0,taxaRedeBtc:0,custoRede:0,qtdC:0,qtdV:0,qtdT:0};
+  const L={};
+  const poolDe=(n)=>{ n=(n||"").trim()||CORRETORA_PADRAO; if(!L[n]) L[n]=novoPoolLocal(); return L[n]; };
+  const linhas=[];
+  for(const op of ordenadas){
+    if(op.tipo==="COMPRA"){
+      const ct=(Number(op.brl)||0)+(Number(op.taxa)||0);
+      G.saldo+=op.btc; G.custo+=ct; G.lotes.push({btc:op.btc,unit:op.btc>0?ct/op.btc:0});
+      G.compras+=Number(op.brl)||0; G.taxas+=Number(op.taxa)||0; G.qtdC++;
+      const P=poolDe(corretoraDe(op));
+      P.saldo+=op.btc; P.custo+=ct; P.lotes.push({btc:op.btc,unit:op.btc>0?ct/op.btc:0});
+      P.compras+=Number(op.brl)||0; P.taxas+=Number(op.taxa)||0; P.qtdC++;
+      const gCm=G.saldo>0?G.custo/G.saldo:0, lCm=P.saldo>0?P.custo/P.saldo:0;
+      linhas.push({...op, saldoAcumulado:G.saldo, custoBaseVenda:0, lucroRealizado:0,
+        custoMedioApos:gCm, saldoLocalApos:P.saldo, custoMedioLocalApos:lCm, custoBaseVendaLocal:0, lucroLocal:0});
+    }else if(op.tipo==="VENDA"){
+      const costG=removerDoPool(G,op.btc,metodo);
+      const lucroG=(Number(op.brl)||0)-(Number(op.taxa)||0)-costG;
+      G.saldo-=op.btc; G.custo=Math.max(0,G.custo-costG); G.lucro+=lucroG;
+      G.vendas+=Number(op.brl)||0; G.taxas+=Number(op.taxa)||0; G.qtdV++;
+      const P=poolDe(corretoraDe(op));
+      const costL=removerDoPool(P,op.btc,metodo);
+      const lucroL=(Number(op.brl)||0)-(Number(op.taxa)||0)-costL;
+      P.saldo-=op.btc; P.custo=Math.max(0,P.custo-costL); P.lucro+=lucroL;
+      P.vendas+=Number(op.brl)||0; P.taxas+=Number(op.taxa)||0; P.qtdV++;
+      const gCm=G.saldo>0?G.custo/G.saldo:0, lCm=P.saldo>0?P.custo/P.saldo:0;
+      linhas.push({...op, saldoAcumulado:G.saldo, custoBaseVenda:costG, lucroRealizado:lucroG,
+        custoMedioApos:gCm, saldoLocalApos:P.saldo, custoMedioLocalApos:lCm, custoBaseVendaLocal:costL, lucroLocal:lucroL});
+    }else if(op.tipo==="TRANSFERENCIA"){
+      const V=Number(op.btc)||0, F=Number(op.taxaBtc)||0, D=V-F;
+      G.qtdT++;
+      let costFee=0;
+      if(F>1e-15){ costFee=removerDoPool(G,F,metodo); G.saldo-=F; G.custo=Math.max(0,G.custo-costFee);
+        G.taxaRedeBtc+=F; G.custoRede+=costFee; }
+      const A=poolDe(op.origem), B=poolDe(op.destino);
+      let carried=0;
+      if(String(op.origem||"").trim()!==String(op.destino||"").trim() && V>1e-15){
+        const costA=removerDoPool(A,V,metodo);
+        A.saldo-=V; A.custo=Math.max(0,A.custo-costA); A.transfOut+=V; A.taxaRedeBtc+=F;
+        carried=costA*(D>0?D/V:0);
+        if(D>1e-15){ B.lotes.push({btc:D,unit:carried/D}); B.saldo+=D; B.custo+=carried; B.transfIn+=D; }
+      }else if(F>1e-15){ A.taxaRedeBtc+=F; }
+      const gCm=G.saldo>0?G.custo/G.saldo:0;
+      linhas.push({...op, isTransfer:true, btcEntregue:Math.max(0,D), saldoAcumulado:G.saldo,
+        custoBaseVenda:0, lucroRealizado:0, custoMedioApos:gCm,
+        origemApos:A.saldo, destinoApos:B.saldo, custoTransportado:carried, custoTaxaRede:costFee});
+    }
+  }
+  const montaResumo=(saldo,custo,compras,vendas,taxas,lucro,qtdC,qtdV)=>{
+    const carteira=cot?saldo*cot:0, naoReal=cot?carteira-custo:0;
+    return { saldoBTC:saldo, totalCompras:compras, totalVendas:vendas, totalTaxas:taxas,
+      capitalLiquido:compras-vendas+taxas, custoBaseRestante:custo, custoMedio:saldo>0?custo/saldo:0,
+      lucroRealizado:lucro, lucroNaoRealizado:naoReal, valorCarteira:carteira, plTotal:lucro+naoReal,
+      plPercentual:compras>0?((lucro+naoReal)/compras)*100:0, qtdCompras:qtdC, qtdVendas:qtdV };
+  };
+  const g=montaResumo(G.saldo,G.custo,G.compras,G.vendas,G.taxas,G.lucro,G.qtdC,G.qtdV);
+  g.qtdTransf=G.qtdT; g.taxaRedeBtc=G.taxaRedeBtc; g.custoRede=G.custoRede;
+  const locais={};
+  for(const [nome,P] of Object.entries(L)){
+    const r=montaResumo(P.saldo,P.custo,P.compras,P.vendas,P.taxas,P.lucro,P.qtdC,P.qtdV);
+    r.transfIn=P.transfIn; r.transfOut=P.transfOut; r.taxaRedeBtc=P.taxaRedeBtc;
+    locais[nome]=r;
+  }
+  return {global:g, locais, linhas};
+}
+function saldoSoOperacoes(corretora){
+  if(corretora==="TODAS") return processarPortfolio(operacoes,metodo,null).global.saldoBTC;
+  const rel=operacoes.filter(o=>o.tipo==="TRANSFERENCIA"
+    ? (String(o.origem)===corretora||String(o.destino)===corretora)
+    : corretoraDe(o)===corretora);
+  const P=processarPortfolio(rel,metodo,null);
+  if(P.locais[corretora]) return P.locais[corretora].saldoBTC;
+  return 0;
+}
+function resumoTotal(){
+  const P=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,cotacaoAtual());
+  return {...P.global, linhas:P.linhas};
+}
+function resumoCorretora(){
+  if(F.corretora==="TODAS") return resumoTotal();
+  const X=F.corretora, c=cotacaoAtual();
+  const P=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,c);
+  const base=P.locais[X]||{saldoBTC:0,custoBaseRestante:0,totalCompras:0,totalVendas:0,totalTaxas:0,lucroRealizado:0,qtdCompras:0,qtdVendas:0,transfIn:0,transfOut:0,taxaRedeBtc:0};
+  const carteira=c?base.saldoBTC*c:0, naoReal=c?carteira-base.custoBaseRestante:0;
+  const linhas=P.linhas.filter(l=>{
+    if(l.isInicial) return corretoraDe(l)===X;
+    if(l.tipo==="TRANSFERENCIA") return String(l.origem)===X||String(l.destino)===X;
+    return corretoraDe(l)===X;
+  }).map(l=>{
+    if(l.tipo==="TRANSFERENCIA") return {...l, saldoAcumulado:(String(l.origem)===X?l.origemApos:l.destinoApos)};
+    return {...l, saldoAcumulado:l.saldoLocalApos, custoMedioApos:l.custoMedioLocalApos,
+      custoBaseVenda:l.custoBaseVendaLocal||0, lucroRealizado:(l.tipo==="VENDA"?l.lucroLocal:0)};
+  });
+  return {...base, valorCarteira:carteira, lucroNaoRealizado:naoReal, plTotal:base.lucroRealizado+naoReal,
+    plPercentual:base.totalCompras>0?((base.lucroRealizado+naoReal)/base.totalCompras)*100:0,
+    qtdTransf:P.linhas.filter(l=>l.tipo==="TRANSFERENCIA"&&(String(l.origem)===X||String(l.destino)===X)).length,
+    taxaRedeBtc:base.taxaRedeBtc||0, linhas};
+}
+function alocacao(){
+  const P=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,null);
+  return Object.entries(P.locais).map(([nome,r])=>({nome, saldoBTC:r.saldoBTC}))
+    .filter(x=>x.saldoBTC>1e-12).sort((a,b)=>a.nome.localeCompare(b.nome));
+}
+
+/* ============ render ============ */
+function kpiHTML(t,v,d,tom){
+  const icons={ouro:"₿",alta:"↗",baixa:"↘",neutro:"◈"};
+  return `<div class="panel kpi tom-${tom||"neutro"}"><div class="t"><span>${esc(t)}</span><span style="color:var(--gold)">${icons[tom]||"◈"}</span></div><div class="v num">${v}</div>${d?`<div class="d">${d}</div>`:""}</div>`;
+}
+function renderAll(){ renderCotacao(); renderResumo(); renderFiltros(); renderTabela(); renderAnalise(); renderRelatorios(); renderIniciais(); persist(); scheduleCharts(); }
+
+function renderCotacao(){
+  $("binRefreshBtn").innerHTML = bin.carregando ? `<span class="spin"></span> Atualizando…` : `Atualizar agora`;
+  $("binRefreshBtn").disabled = bin.carregando;
+  $("binPrecoEl").textContent = bin.preco ? `${brl(bin.preco)} / BTC` : "Carregando…";
+  const hora = bin.atualizadoEm ? new Date(bin.atualizadoEm).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) : "—";
+  $("binMetaEl").textContent = `Fonte: Binance · ${bin.erro&&bin.preco?"última cotação disponível · ":""}atualizado às ${hora} · a cada 30s`;
+  $("binErrEl").style.display = (bin.erro&&!bin.preco) ? "block" : "none";
+  const c=cotacaoAtual(), m=cotacaoManualVal();
+  $("cotacaoUsoEl").textContent = c ? `Em uso: ${brl(c)} · fonte ${m?"manual":"Binance"}` : "Sem cotação — valor de mercado e P/L não realizado indisponíveis.";
+  const nC=operacoes.filter(o=>o.tipo==="COMPRA").length, nV=operacoes.filter(o=>o.tipo==="VENDA").length,
+    nT=operacoes.filter(o=>o.tipo==="TRANSFERENCIA").length;
+  $("contaEl").textContent = `${operacoes.length} operações no histórico · ${nC} compras · ${nV} vendas${nT?` · ${nT} transferências`:""}${Object.keys(saldosIniciais).length?` · saldo inicial em ${Object.keys(saldosIniciais).length} ${Object.keys(saldosIniciais).length>1?"locais":"local"}`:""}`;
+}
+function renderPosTotalHero(c){
+  const el=$("posTotalHero"); if(!el) return;
+  const P=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,c||null);
+  const nomes=Object.keys(P.locais||{}).sort();
+  const comSaldo=nomes.filter(n=>(P.locais[n].saldoBTC||0)>1e-12);
+  const lista=comSaldo.length?comSaldo:nomes;
+  const totalBtc=P.global.saldoBTC||0;
+  const fonte=cotacaoManualVal()?"cotação manual":"Binance";
+  const chips=lista.length?lista.map(n=>{
+    const r=P.locais[n], v=c?r.saldoBTC*c:0;
+    return `<span class="hero-chip"><b>${esc(n)}</b><span class="num">${c?brl(v):btcFmt(r.saldoBTC)}</span></span>`;
+  }).join(""):`<span class="hint">Sem locais com saldo — registre operações ou um saldo inicial.</span>`;
+  el.innerHTML=
+    `<div class="hero-top"><span class="hero-label">Posição total</span><span class="hero-fontes">consolidado · ${lista.length} ${lista.length===1?"local":"locais"}</span></div>`+
+    `<div class="hero-valor num">${c?brl(totalBtc*c):btcFmt(totalBtc)}</div>`+
+    `<div class="hero-sub num">${c?`${btcFmt(totalBtc)} · @ ${brl(c)} / BTC`:`${btcFmt(totalBtc)} · informe a cotação para ver o valor em R$`}</div>`+
+    `<div class="hero-chips">${chips}</div>`+
+    `<p class="hint hero-note">Soma do BTC em todos os locais, convertido pela ${fonte}. Transferências entre locais não alteram o total.</p>`;
+}
+function renderResumo(){
+  const T=resumoTotal(), R=resumoCorretora(), c=cotacaoAtual();
+  const al=alocacao();
+  renderPosTotalHero(c);
+  $("resumoNotaEl").textContent = F.corretora==="TODAS" ? `Resumo consolidado de ${al.length} ${al.length===1?"local":"locais"} (corretoras e wallets).` : `Resumo filtrado: somente ${F.corretora} (altere na aba Operações).`;
+  const plTom = R.plTotal>=0?"alta":"baixa";
+  const totalDesc=(c?`≈ ${brl(T.valorCarteira)}`:"Valor em R$ indisponível")+(al.length?` · ${al.map(a=>esc(a.nome)).join(" + ")}`:"");
+  const locCard=F.corretora==="TODAS"?"":kpiHTML(`BTC — ${F.corretora}`, btcFmt(R.saldoBTC), `${c?`≈ ${brl(R.valorCarteira)}`:"valor em R$ indisponível"}`, "ouro");
+  $("kpiGrid1").innerHTML =
+    kpiHTML("BTC — posição total", btcFmt(T.saldoBTC), totalDesc, "ouro")+
+    locCard+
+    kpiHTML("Total em compras", brl(R.totalCompras), "", "alta")+
+    kpiHTML("Total em vendas", brl(R.totalVendas), "Receita bruta, não é lucro", "baixa")+
+    kpiHTML("Taxas pagas", brl(R.totalTaxas), "")+
+    kpiHTML("Capital líquido aplicado", brl(R.capitalLiquido), "Compras − vendas + taxas", "ouro")+
+    kpiHTML("Custo médio do saldo", `${brl(R.custoMedio)} / BTC`, metodo==="FIFO"?"Base FIFO":"Base custo médio")+
+    kpiHTML("Cotação atual", c?`${brl(c)} / BTC`:"Informe a cotação", "", c?"ouro":"neutro")+
+    kpiHTML("P/L total", c?brl(R.plTotal):brl(R.lucroRealizado), c?pct(R.plPercentual):"apenas realizado (sem cotação)", plTom);
+  $("kpiGrid2").innerHTML =
+    kpiHTML("Lucro realizado", brl(R.lucroRealizado), "Vendas − custo das moedas vendidas", R.lucroRealizado>=0?"alta":"baixa")+
+    kpiHTML("Lucro não realizado", c?brl(R.lucroNaoRealizado):"—", "Valor de mercado − custo em carteira", c?(R.lucroNaoRealizado>=0?"alta":"baixa"):"neutro")+
+    kpiHTML("Custo em carteira", brl(R.custoBaseRestante), "")+
+    kpiHTML("Taxas de rede", (R.taxaRedeBtc||0)>1e-12?btcFmt(R.taxaRedeBtc):"—", (R.taxaRedeBtc||0)>1e-12?`BTC pago à rede${R.custoRede?` · custo ${brl(R.custoRede)}`:""}`:"Nenhuma transferência com taxa", "neutro");
+}
+function fillSelect(el, vals, cur, allLabel){
+  const keep=el.value;
+  el.innerHTML=`<option value="${allLabel==='Todas'?'TODOS':'TODAS'}">${allLabel==='Todas'?'Todas':allLabel}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  el.value = vals.includes(cur)?cur:el.options[0].value;
+}
+function renderFiltros(){
+  const cs=corretoras(), os=origensCompra(), ds=destinosVenda();
+  const c=$("fCorretora"), cur=c.value||F.corretora;
+  c.innerHTML=`<option value="TODAS">Todas (consolidado)</option>`+cs.map(v=>`<option>${esc(v)}</option>`).join("");
+  if(cs.includes(F.corretora)) c.value=F.corretora; else { c.value="TODAS"; F.corretora="TODAS"; }
+  const o=$("fOrigem"); o.innerHTML=`<option value="TODAS">Todas as origens</option>`+os.map(v=>`<option>${esc(v)}</option>`).join("");
+  o.value=os.includes(F.origem)?F.origem:"TODAS"; if(o.value==="TODAS") F.origem="TODAS";
+  const d=$("fDestino"); d.innerHTML=`<option value="TODOS">Todos os destinos</option>`+ds.map(v=>`<option>${esc(v)}</option>`).join("");
+  d.value=ds.includes(F.destino)?F.destino:"TODOS"; if(d.value==="TODOS") F.destino="TODOS";
+  $("fTipo").value=F.tipo; $("fDe").value=F.de; $("fAte").value=F.ate;
+}
+function linhasFiltradas(){
+  const R=resumoCorretora();
+  return R.linhas.filter(l=>{
+    if(l.isInicial){
+      if(F.tipo!=="TODOS"&&F.tipo!=="COMPRA") return false;
+      if(F.de&&l.data<F.de) return false;
+      if(F.ate&&l.data>F.ate) return false;
+      if(F.corretora!=="TODAS"&&corretoraDe(l)!==F.corretora) return false;
+      return true;
+    }
+    if(l.tipo==="TRANSFERENCIA"){
+      if(F.tipo!=="TODOS"&&F.tipo!=="TRANSFERENCIA") return false;
+      if(F.de&&l.data<F.de) return false;
+      if(F.ate&&l.data>F.ate) return false;
+      return true;
+    }
+    if(F.tipo!=="TODOS"&&l.tipo!==F.tipo) return false;
+    if(F.origem!=="TODAS"&&(l.tipo!=="COMPRA"||(l.origemCompra||"").trim()!==F.origem)) return false;
+    if(F.destino!=="TODOS"&&(l.tipo!=="VENDA"||(l.destinoVenda||"").trim()!==F.destino)) return false;
+    if(F.de&&l.data<F.de) return false;
+    if(F.ate&&l.data>F.ate) return false;
+    return true;
+  });
+}
+function renderTabela(){
+  const ls=linhasFiltradas();
+  if(!ls.length){ $("opsBody").innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--mut);padding:30px">Nenhuma operação para os filtros escolhidos.</td></tr>`; return; }
+  $("opsBody").innerHTML=ls.map(l=>{
+    if(l.isInicial){
+      return `<tr style="background:rgba(34,211,238,.06)">
+      <td class="num">${dataBR(l.data)}</td>
+      <td><span class="tag c">SALDO INICIAL</span></td>
+      <td><span>${esc(corretoraDe(l))}</span><span class="mini">Ajuste de saldo inicial</span></td>
+      <td class="num r">${btcFmt(l.btc)}</td><td class="num r">${brl(l.brl)}</td>
+      <td class="num r">${brl(l.cotacao)}</td><td class="num r">—</td>
+      <td class="num r" style="color:var(--gold)">${btcFmt(l.saldoAcumulado)}</td>
+      <td class="num r"><span style="color:var(--mut)">—</span></td>
+      <td class="no-print r" style="white-space:nowrap"><span class="hint">editar em Config</span></td>
+    </tr>`;
+    }
+    if(l.tipo==="TRANSFERENCIA"){
+      const rec=Math.max(0,(Number(l.btc)||0)-(Number(l.taxaBtc)||0));
+      return `<tr style="background:rgba(56,189,248,.05)">
+      <td class="num">${dataBR(l.data)}${l.hora?` <span class="mini" style="display:inline">${esc(l.hora)}</span>`:""}</td>
+      <td><span class="tag" style="background:rgba(56,189,248,.16);color:#7dd3fc;border-color:rgba(56,189,248,.4)">TRANSFERÊNCIA</span></td>
+      <td><span>${esc(l.origem||"—")} → ${esc(l.destino||"—")}</span>${l.hash?`<span class="mini">hash ${esc(String(l.hash).slice(0,18))}${String(l.hash).length>18?"…":""}</span>`:""}${l.observacao?`<span class="mini">${esc(l.observacao)}</span>`:""}</td>
+      <td class="num r">${btcFmt(l.btc)}</td><td class="num r">${l.brl?brl(l.brl):"—"}</td>
+      <td class="num r">${l.cotacao?brl(l.cotacao):"—"}</td><td class="num r">${(Number(l.taxaBtc)||0)>0?btcFmt(l.taxaBtc):"—"}</td>
+      <td class="num r" style="color:var(--gold)">${btcFmt(l.saldoAcumulado)}</td>
+      <td class="num r"><span class="mini">recebe ${btcFmt(rec)}</span></td>
+      <td class="no-print r" style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-edit="${l.id}" title="Editar">✎</button>
+      <button class="btn btn-ghost btn-sm" data-del="${l.id}" title="Remover" style="color:var(--loss)">🗑</button></td>
+    </tr>`;
+    }
+    const sub = l.tipo==="COMPRA"&&l.origemCompra ? `<span class="mini">Origem da compra: ${esc(l.origemCompra)}</span>`
+      : l.tipo==="VENDA"&&l.destinoVenda ? `<span class="mini">Destino da venda: ${esc(l.destinoVenda)}</span>` : "";
+    const res = l.tipo==="VENDA" ? `<span style="color:${l.lucroRealizado>=0?"var(--gain)":"var(--loss)"}">${brl(l.lucroRealizado)}</span>` : `<span style="color:var(--mut)">—</span>`;
+    return `<tr>
+      <td class="num">${dataBR(l.data)}${l.hora?` <span class="mini" style="display:inline">${esc(l.hora)}</span>`:""}</td>
+      <td><span class="tag ${l.tipo==="COMPRA"?"c":"v"}">${l.tipo}</span></td>
+      <td><span>${esc(corretoraDe(l))}</span>${sub}</td>
+      <td class="num r">${btcFmt(l.btc)}</td><td class="num r">${brl(l.brl)}</td>
+      <td class="num r">${brl(l.cotacao)}</td><td class="num r">${brl(l.taxa)}</td>
+      <td class="num r" style="color:var(--gold)">${btcFmt(l.saldoAcumulado)}</td>
+      <td class="num r">${res}</td>
+      <td class="no-print r" style="white-space:nowrap"><button class="btn btn-ghost btn-sm" data-edit="${l.id}" title="Editar">✎</button>
+      <button class="btn btn-ghost btn-sm" data-del="${l.id}" title="Remover" style="color:var(--loss)">🗑</button></td>
+    </tr>`;
+  }).join("");
+  $("opsBody").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
+    operacoes=operacoes.filter(o=>o.id!==b.getAttribute("data-del")); renderAll(); toast("Operação removida.","ok");
+  }));
+  $("opsBody").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>{
+    const op=operacoes.find(o=>o.id===b.getAttribute("data-edit")); if(op) openRegistrar(op);
+  }));
+}
+function renderAnalise(){
+  const R=resumoCorretora(), c=cotacaoAtual();
+  const custoVend=R.linhas.reduce((s,l)=>s+l.custoBaseVenda,0);
+  $("anaLista").innerHTML=`
+    <li>Você comprou <b class="num">${brl(R.totalCompras)}</b> e vendeu <b class="num">${brl(R.totalVendas)}</b>. A venda é devolução de capital mais resultado, nunca lucro cheio.</li>
+    <li>O custo das moedas vendidas foi <b class="num">${brl(custoVend)}</b>, o que deixa um resultado realizado de <b class="num" style="color:${R.lucroRealizado>=0?"var(--gain)":"var(--loss)"}">${brl(R.lucroRealizado)}</b> pelo método ${metodo==="FIFO"?"FIFO":"custo médio"}.</li>
+    <li>Restam <b class="num">${btcFmt(R.saldoBTC)}</b> em carteira, com custo de <b class="num">${brl(R.custoBaseRestante)}</b> e preço médio de <b class="num">${brl(R.custoMedio)}</b> por BTC.</li>
+    <li>${c?`Na cotação informada, a posição vale <b class="num">${brl(R.valorCarteira)}</b> e o resultado em aberto é <b class="num" style="color:${R.lucroNaoRealizado>=0?"var(--gain)":"var(--loss)"}">${brl(R.lucroNaoRealizado)}</b>.`:"Informe a cotação atual do BTC para ver o valor de mercado e o resultado em aberto. Nenhum preço é inventado pelo painel."}</li>
+    ${(R.qtdTransf||0)>0?`<li>Transferências entre locais não geram lucro: movem <b class="num">${btcFmt(R.linhas.filter(l=>l.tipo==="TRANSFERENCIA").reduce((s,l)=>s+(Number(l.btc)||0),0))}</b> no período, com taxa de rede total de <b class="num">${btcFmt(R.taxaRedeBtc||0)}</b>${R.custoRede?` (custo ${brl(R.custoRede)})`:""}. O custo acompanha as moedas até o destino.</li>`:""}`;
+  const compras=R.linhas.filter(l=>l.tipo==="COMPRA"), vendas=R.linhas.filter(l=>l.tipo==="VENDA");
+  const sumBtc=a=>a.reduce((s,l)=>s+l.btc,0), sumBrl=a=>a.reduce((s,l)=>s+l.brl,0);
+  const pmC=sumBtc(compras)>1e-12?brl(sumBrl(compras)/sumBtc(compras))+" / BTC":"—";
+  const pmV=vendas.length?brl(sumBrl(vendas)/Math.max(sumBtc(vendas),1e-12))+" / BTC":"—";
+  $("anaKpis").innerHTML=
+    kpiHTML("Preço médio de compra",pmC,"","alta")+
+    kpiHTML("Preço médio de venda",pmV,"","baixa")+
+    kpiHTML("Retorno sobre o capital",c?pct(R.plPercentual):"—","",R.plTotal>=0?"alta":"baixa");
+}
+
+/* ============ relatórios ============ */
+function agruparMensal(){
+  const R=resumoCorretora(), map={};
+  for(const l of R.linhas){
+    if(l.tipo!=="VENDA") continue;
+    const m=String(l.data).slice(0,7);
+    if(!map[m]) map[m]={mes:m,n:0,vendas:0,custo:0,lucro:0};
+    const r=map[m]; r.n++; r.vendas+=Number(l.brl)||0; r.custo+=Number(l.custoBaseVenda)||0; r.lucro+=Number(l.lucroRealizado)||0;
+  }
+  return Object.values(map).sort((a,b)=>a.mes<b.mes?-1:1);
+}
+const mesBR=(iso)=>`${String(iso).slice(5,7)}/${String(iso).slice(0,4)}`;
+function renderRelatorios(){
+  const R=resumoCorretora(), c=cotacaoAtual();
+  if(!$("relMensalBody")) return;
+  $("relNotaEl").textContent = F.corretora==="TODAS" ? "Consolidado de todos os locais (corretoras e wallets)." : `Somente ${F.corretora} (altere na aba Operações).`;
+  const rows=agruparMensal();
+  let ac=0;
+  $("relMensalBody").innerHTML=rows.length?rows.map(r=>{ ac+=r.lucro;
+    return `<tr><td class="num">${mesBR(r.mes)}</td><td class="num r">${brl(r.vendas)}</td><td class="num r">${r.n}</td><td class="num r">${brl(r.custo)}</td><td class="num r" style="color:${r.lucro>=0?"var(--gain)":"var(--loss)"}">${brl(r.lucro)}</td><td class="num r" style="color:${ac>=0?"var(--gain)":"var(--loss)"}">${brl(ac)}</td></tr>`; }).join("")+
+    `<tr style="font-weight:700"><td>Total</td><td class="num r">${brl(rows.reduce((s,r)=>s+r.vendas,0))}</td><td class="num r">${rows.reduce((s,r)=>s+r.n,0)}</td><td class="num r">${brl(rows.reduce((s,r)=>s+r.custo,0))}</td><td class="num r" style="color:${R.lucroRealizado>=0?"var(--gain)":"var(--loss)"}">${brl(R.lucroRealizado)}</td><td class="num r" style="color:${R.lucroRealizado>=0?"var(--gain)":"var(--loss)"}">${brl(R.lucroRealizado)}</td></tr>`
+    :`<tr><td colspan="6" style="text-align:center;color:var(--mut);padding:24px">Sem vendas no período — o lucro realizado aparece aqui após a primeira venda.</td></tr>`;
+  const P=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,c);
+  const nomes=F.corretora==="TODAS"?Object.keys(P.locais).sort():[F.corretora];
+  $("relPosBody").innerHTML=nomes.length?nomes.map(n=>{
+    const r=P.locais[n]||{saldoBTC:0,custoBaseRestante:0};
+    const cm=r.saldoBTC>1e-12?r.custoBaseRestante/r.saldoBTC:0;
+    const mercado=c?r.saldoBTC*c:0, aberto=c?mercado-r.custoBaseRestante:0;
+    return `<tr><td>${esc(n)}</td><td class="num r">${btcFmt(r.saldoBTC)}</td><td class="num r">${brl(r.custoBaseRestante)}</td><td class="num r">${r.saldoBTC>1e-12?brl(cm)+" / BTC":"—"}</td><td class="num r">${c?brl(mercado):"—"}</td><td class="num r" style="color:${!c?"var(--mut)":aberto>=0?"var(--gain)":"var(--loss)"}">${c?brl(aberto):"—"}</td></tr>`; }).join("")
+    :`<tr><td colspan="6" style="text-align:center;color:var(--mut);padding:24px">Nenhum local com posição.</td></tr>`;
+  const trs=R.linhas.filter(l=>l.tipo==="TRANSFERENCIA");
+  $("relTransfBody").innerHTML=trs.length?trs.map(l=>{
+    const rec=Math.max(0,(Number(l.btc)||0)-(Number(l.taxaBtc)||0));
+    return `<tr><td class="num">${dataBR(l.data)}</td><td>${esc(l.origem||"—")} → ${esc(l.destino||"—")}</td><td class="num r">${btcFmt(l.btc)}</td><td class="num r">${(Number(l.taxaBtc)||0)>0?btcFmt(l.taxaBtc):"—"}</td><td class="num r">${btcFmt(rec)}</td><td class="num r">${l.cotacao?brl(l.cotacao):"—"}</td><td><span class="mini">${esc(l.hash||"—")}</span></td></tr>`; }).join("")
+    :`<tr><td colspan="7" style="text-align:center;color:var(--mut);padding:24px">Nenhuma transferência registrada.</td></tr>`;
+}
+function exportarMensalCSV(){
+  const rows=agruparMensal(); let ac=0;
+  const f2=(v)=>(Number(v)||0).toFixed(2).replace(".",",");
+  const ls=rows.map(r=>{ ac+=r.lucro;
+    return [`${r.mes.slice(5,7)}/${r.mes.slice(0,4)}`,r.n,f2(r.vendas),f2(r.custo),f2(r.lucro),f2(ac)].join(";"); });
+  baixarArquivo(`relatorio-mensal-${hojeISO()}.csv`,[["Mês","N vendas","Vendas BRL","Custo BRL","Lucro BRL","Lucro acumulado BRL"].join(";"),...ls].join("\n"),"text/csv;charset=utf-8");
+  toast("Relatório mensal exportado.","ok");
+}
+
+/* ============ binance ============ */
+function lerCacheCot(){
+  try{ const p=JSON.parse(localStorage.getItem(CHAVE_COT)); if(p&&typeof p.preco==="number"&&p.preco>0) return p; }catch{}
+  return null;
+}
+async function atualizarBin(){
+  bin.carregando=true; renderCotacao();
+  try{
+    const r=await fetch(BIN_URL,{cache:"no-store"});
+    if(!r.ok) throw new Error("http");
+    const j=await r.json(); const p=Number(j.price);
+    if(!Number.isFinite(p)||p<=0) throw new Error("preco");
+    bin={preco:p, atualizadoEm:new Date().toISOString(), carregando:false, erro:false};
+    try{ localStorage.setItem(CHAVE_COT,JSON.stringify({preco:p,atualizadoEm:bin.atualizadoEm})); }catch{}
+  }catch{ bin.carregando=false; bin.erro=true; }
+  renderAll();
+}
+
+/* ============ charts (Chart.js lazy) ============ */
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[data-src="${src}"]`)) return res();
+    const s=document.createElement("script"); s.src=src; s.dataset.src=src;
+    s.onload=res; s.onerror=rej; document.head.appendChild(s);
+  });
+}
+const CHART_JS="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js";
+function scheduleCharts(){
+  if(document.querySelector('[data-panel="graficos"]').hidden) return;
+  void renderCharts();
+}
+async function renderCharts(){
+  const R=resumoCorretora(), box=$("chartsHint");
+  try{ await loadScript(CHART_JS); }
+  catch{ box.textContent="Gráficos indisponíveis (falha ao carregar a biblioteca). Os números do Resumo e da Análise continuam valendo."; return; }
+  if(!window.Chart){ box.textContent="Gráficos indisponíveis neste navegador."; return; }
+  box.textContent="";
+  const dados=R.linhas.map(l=>({data:dataBR(l.data).slice(0,5), saldo:Number(l.saldoAcumulado.toFixed(8)),
+    cotacao:l.cotacao, custoMedio:Number(l.custoMedioApos.toFixed(2)),
+    compra:l.tipo==="COMPRA"?l.brl:0, venda:l.tipo==="VENDA"?l.brl:0, realizado:l.lucroRealizado}));
+  let ac=0; const dAc=dados.map(d=>{ ac+=d.realizado; return {...d, acumulado:Number(ac.toFixed(2))}; });
+  const labels=dados.map(d=>d.data);
+  const gridC="rgba(227,179,65,.12)", tickC="#a89f8d";
+  const base={responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:tickC,boxWidth:12,font:{size:11}}},
+    tooltip:{callbacks:{label:(c)=>` ${c.dataset.label||""}: ${typeof c.parsed.y==="number"&&Math.abs(c.parsed.y)>1000?brl(c.parsed.y):String(c.parsed.y)}`}}}};
+  const mk=(id,cfg)=>{ if(charts[id]) charts[id].destroy(); charts[id]=new Chart($(id),cfg); };
+  Chart.defaults.color=tickC; Chart.defaults.borderColor=gridC; Chart.defaults.font.size=11;
+  mk("chSaldo",{type:"line",data:{labels,datasets:[{label:"Saldo",data:dados.map(d=>d.saldo),borderColor:"#e3b341",backgroundColor:"rgba(227,179,65,.25)",fill:true,tension:.3,pointRadius:2}]},
+    options:{...base,plugins:{...base.plugins,legend:{display:false}}}});
+  mk("chCotacao",{type:"line",data:{labels,datasets:[
+    {label:"Cotação",data:dados.map(d=>d.cotacao),borderColor:"#e3b341",tension:.3,pointRadius:3,fill:false},
+    {label:"Custo médio",data:dados.map(d=>d.custoMedio),borderColor:"#34d399",borderDash:[5,4],tension:.3,pointRadius:0,fill:false}]},options:base});
+  mk("chBarras",{type:"bar",data:{labels,datasets:[
+    {label:"Compra",data:dados.map(d=>d.compra),backgroundColor:"#34d399",borderRadius:4},
+    {label:"Venda",data:dados.map(d=>d.venda),backgroundColor:"#f87171",borderRadius:4}]},options:base});
+  mk("chAcumulado",{type:"line",data:{labels,datasets:[{label:"Acumulado",data:dAc.map(d=>d.acumulado),borderColor:"#34d399",backgroundColor:"rgba(52,211,153,.25)",fill:true,tension:.3,pointRadius:2}]},options:base});
+  mk("chVolume",{type:"doughnut",data:{labels:["Compras","Vendas"],datasets:[{data:[R.totalCompras,R.totalVendas],backgroundColor:["#34d399","#f87171"],borderColor:"#14110c"}]},
+    options:{...base,cutout:"55%"}});
+  $("volLegend").innerHTML=`<span><i class="dot" style="background:#34d399"></i>Compras · ${brl(R.totalCompras)}</span><span><i class="dot" style="background:#f87171"></i>Vendas · ${brl(R.totalVendas)}</span>`;
+  const al=alocacao(), cores=["#e3b341","#34d399","#f87171","#60a5fa","#a8a094"];
+  const tot=al.reduce((s,a)=>s+a.saldoBTC,0);
+  if(charts["chAlocacao"]) charts["chAlocacao"].destroy();
+  if(al.length){
+    charts["chAlocacao"]=new Chart($("chAlocacao"),{type:"doughnut",
+      data:{labels:al.map(a=>a.nome),datasets:[{data:al.map(a=>Number(a.saldoBTC.toFixed(8))),backgroundColor:al.map((_,i)=>cores[i%cores.length]),borderColor:"#14110c"}]},
+      options:{...base,cutout:"55%"}});
+    $("alocLegend").innerHTML=al.map((a,i)=>`<span><i class="dot" style="background:${cores[i%cores.length]}"></i>${esc(a.nome)} · ${btcFmt(a.saldoBTC)} · ${(tot>0?a.saldoBTC/tot*100:0).toFixed(1)}%</span>`).join("");
+  }else{ $("alocLegend").textContent="Nenhum saldo BTC disponível por corretora."; }
+}
+
+/* ============ registrar ============ */
+function comprimirImagem(file,largMax=700,qual=.7){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader(); fr.onerror=()=>rej(new Error("leitura"));
+    fr.onload=()=>{ const img=new Image(); img.onerror=()=>rej(new Error("img"));
+      img.onload=()=>{ const e=Math.min(1,largMax/img.width);
+        const cv=document.createElement("canvas"); cv.width=Math.round(img.width*e); cv.height=Math.round(img.height*e);
+        const cx=cv.getContext("2d"); if(!cx) return rej(new Error("canvas"));
+        cx.drawImage(img,0,0,cv.width,cv.height); res(cv.toDataURL("image/jpeg",qual)); };
+      img.src=String(fr.result); };
+    fr.readAsDataURL(file);
+  });
+}
+function openRegistrar(edicao){
+  const isEd=!!edicao;
+  let tipo=edicao?edicao.tipo:"COMPRA", corretora=edicao?(edicao.corretora||"").trim()||"99Pay":"99Pay", comprovante=edicao?edicao.comprovante||null:null;
+  const ov=openModal(`
+    <div class="body">
+      <div><h2>${isEd?"Editar operação":"Registrar operação"}</h2>
+      <p class="desc">Lance a compra, a venda ou a transferência entre corretora/wallet. Nas compras/vendas, o preço informado é o preço efetivamente executado. Na transferência, só o BTC é movimentado (com taxa de rede em BTC).</p></div>
+      <div id="rgCorBlock"><label class="lbl">Corretora</label>
+        <div class="cortog"><button type="button" id="rgCorPad">Corretora padrão</button><button type="button" id="rgCorOut">Outra corretora</button></div>
+        <div id="rgCorWrap" style="margin-top:8px;display:none"><input class="inp" id="rgCor" placeholder="Nome da corretora" value="${esc(corretora)}"></div></div>
+      <div class="typtog"><button type="button" id="rgTCompra">COMPRA</button><button type="button" id="rgTVenda">VENDA</button><button type="button" id="rgTTransf">TRANSFERÊNCIA</button></div>
+      <div class="row2">
+        <div><label class="lbl">Data</label><input class="inp" type="date" id="rgData" value="${esc(edicao?edicao.data:hojeISO())}"></div>
+        <div><label class="lbl">Hora</label><input class="inp" type="time" id="rgHora" value="${esc(edicao?(edicao.hora||""):agoraHM())}"></div>
+        <div><label class="lbl">Valor em R$</label><input class="inp num" id="rgValor" inputmode="decimal" placeholder="73,00" value="${esc(edicao?String(edicao.brl).replace(".",","):"")}"></div>
+        <div><label class="lbl">Quantidade BTC</label><input class="inp num" id="rgBtc" inputmode="decimal" placeholder="0,00017368" value="${esc(edicao?String(edicao.btc):"")}"></div>
+        <div><label class="lbl">Preço executado (BTC/BRL)</label><input class="inp num" id="rgCot" inputmode="decimal" placeholder="deixe vazio para calcular" value="${esc(edicao?String(edicao.cotacao):"")}"></div>
+        <div><label class="lbl">Taxa R$</label><input class="inp num" id="rgTaxa" inputmode="decimal" placeholder="0,00" value="${esc(edicao?String(edicao.taxa).replace(".",","):"")}"></div>
+      </div>
+      <div id="rgTrFields" style="display:none;border:1px dashed rgba(56,189,248,.45);border-radius:12px;padding:12px;background:rgba(56,189,248,.05)">
+        <div class="row2">
+          <div><label class="lbl">Origem (corretora ou wallet)</label><input class="inp" id="rgOrigem" list="rgLocList" placeholder="ex.: COINBASE" value="${esc(edicao?(edicao.origem||""):"")}"></div>
+          <div><label class="lbl">Destino (corretora ou wallet)</label><input class="inp" id="rgDestino" list="rgLocList" placeholder="ex.: BLUEWALLET" value="${esc(edicao?(edicao.destino||""):"")}"></div>
+          <div><label class="lbl">BTC debitado da origem (total)</label><input class="inp num" id="rgTrBtc" inputmode="decimal" placeholder="0,00750848" value="${esc(edicao&&edicao.tipo==="TRANSFERENCIA"?String(edicao.btc):"")}"></div>
+          <div><label class="lbl">Taxa de rede (BTC)</label><input class="inp num" id="rgTrTaxaBtc" inputmode="decimal" placeholder="0,00000440" value="${esc(edicao&&edicao.tipo==="TRANSFERENCIA"?String(edicao.taxaBtc||""):"")}"></div>
+          <div><label class="lbl">Cotação de referência (BRL/BTC)</label><input class="inp num" id="rgTrCot" inputmode="decimal" placeholder="ex.: 399782,65" value="${esc(edicao&&edicao.tipo==="TRANSFERENCIA"?String(edicao.cotacao||""):"")}"></div>
+          <div><label class="lbl">Hash da transação (opcional)</label><input class="inp" id="rgHash" placeholder="ex.: 2317ec…41e121" value="${esc(edicao?(edicao.hash||""):"")}"></div>
+        </div>
+        <datalist id="rgLocList"></datalist>
+        <p class="hint" style="margin:8px 0 0">O destino recebe o total menos a taxa. A taxa sai da sua posição global e o custo acompanha as moedas (sem lucro realizado).</p>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02);padding:10px 12px;font-size:12px;color:var(--mut)" id="rgCalc"></div>
+      <div id="rgLocalRow"><label class="lbl" id="rgLocalLbl">Origem da compra (opcional)</label><input class="inp" id="rgLocal" value="${esc(edicao?(edicao.origemCompra||edicao.destinoVenda||""):"")}"></div>
+      <div><label class="lbl">Observação</label><textarea class="inp" id="rgObs" rows="2" placeholder="ex.: compra recorrente da manhã">${esc(edicao?(edicao.observacao||""):"")}</textarea></div>
+      <div><label class="lbl">Comprovante (opcional)</label>
+        <div id="rgCompZone"></div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="rgCancel">Cancelar</button>
+        ${isEd?"":'<button class="btn btn-sec" id="rgSaveMore">Salvar e lançar outra</button>'}
+        <button class="btn" id="rgSave">Salvar</button></div>
+    </div>`);
+  const q=(s)=>ov.querySelector(s);
+  const syncCor=()=>{ const outra=corretora!=="99Pay";
+    q("#rgCorPad").className=outra?"":"on"; q("#rgCorOut").className=outra?"on":"";
+    q("#rgCorPad").classList.add(...[]); q("#rgCorWrap").style.display=outra?"block":"none"; };
+  const syncTipo=()=>{ q("#rgTCompra").className=tipo==="COMPRA"?"on-c":""; q("#rgTVenda").className=tipo==="VENDA"?"on-v":"";
+    q("#rgTTransf").className=tipo==="TRANSFERENCIA"?"on-t":"";
+    const isTr=tipo==="TRANSFERENCIA";
+    q("#rgCorBlock").style.display=isTr?"none":"";
+    q("#rgTrFields").style.display=isTr?"block":"none";
+    q("#rgLocalRow").style.display=isTr?"none":"";
+    ["#rgValor","#rgBtc","#rgCot","#rgTaxa"].forEach(s=>{ const el=q(s); if(el) el.closest("div").style.display=isTr?"none":""; });
+    if(!isTr) q("#rgLocalLbl").textContent=tipo==="COMPRA"?"Origem da compra (opcional)":"Destino da venda (opcional)";
+    const dl=q("#rgLocList"); if(dl) dl.innerHTML=corretoras().map(c=>`<option value="${esc(c)}">`).join("");
+    syncCalc(); };
+  const syncCalc=()=>{
+    if(tipo==="TRANSFERENCIA"){
+      const V=parseNumeroBR(q("#rgTrBtc").value), F=parseNumeroBR(q("#rgTrTaxaBtc").value)||0;
+      const cot=parseNumeroBR(q("#rgTrCot").value), D=V-F;
+      let h=V>0?`Origem debita <b class="num" style="color:var(--gold)">${btcFmt(V)}</b> · taxa <b class="num">${btcFmt(F)}</b> · destino recebe <b class="num" style="color:var(--gain)">${btcFmt(Math.max(0,D))}</b>`:"Informe o BTC total debitado da origem.";
+      if(cot>0&&V>0) h+=`<br>Valor de referência: <b class="num">${brl(V*cot)}</b>${F>0?` (taxa ≈ <b class="num">${brl(F*cot)}</b>)`:""}`;
+      q("#rgCalc").innerHTML=h; return; }
+    const b=parseNumeroBR(q("#rgBtc").value), v=parseNumeroBR(q("#rgValor").value), ci=parseNumeroBR(q("#rgCot").value);
+    const cf=ci||(b>0?v/b:0); const ref=edicao?(edicao.cotacaoReferencia??bin.preco):bin.preco;
+    let h=cf>0?`Preço executado: <b class="num" style="color:var(--gold)">${brl(cf)}</b> / BTC`:"Informe valor e BTC para ver o preço executado.";
+    if(ref) h+=`<br>Referência de mercado Binance: <b class="num">${brl(ref)}</b>`+(cf>0?` · spread <b class="num" style="color:${cf>=ref?"var(--loss)":"var(--gain)"}">${(cf>=ref?"+":"")+((cf-ref)/ref*100).toFixed(2)}%</b>`:"");
+    else h+=`<br>Referência Binance indisponível agora — o spread não será calculado.`;
+    q("#rgCalc").innerHTML=h; };
+  const syncComp=()=>{
+    q("#rgCompZone").innerHTML=comprovante
+      ?`<div style="position:relative;width:fit-content"><img class="imgprev" src="${comprovante}" alt="Comprovante"><br><button class="btn btn-sec btn-sm" id="rgCompRm" style="margin-top:6px">Remover comprovante</button></div>`
+      :`<button class="btn btn-ghost" id="rgCompAdd">Anexar print da operação</button><input type="file" id="rgCompFile" accept="image/*" hidden>`;
+    const add=q("#rgCompAdd"), file=q("#rgCompFile"), rm=q("#rgCompRm");
+    if(add&&file){ add.onclick=()=>file.click(); file.onchange=async()=>{ const f=file.files[0]; if(!f) return;
+      try{ comprovante=await comprimirImagem(f); syncComp(); }catch{ toast("Não foi possível anexar esta imagem.","err"); } }; }
+    if(rm) rm.onclick=()=>{ comprovante=null; syncComp(); }; };
+  q("#rgCorPad").onclick=()=>{ corretora="99Pay"; syncCor(); };
+  q("#rgCorOut").onclick=()=>{ corretora=q("#rgCor").value||""; if(corretora==="99Pay") corretora=""; syncCor(); q("#rgCor").focus(); };
+  q("#rgCor").oninput=(e)=>{ corretora=e.target.value; };
+  q("#rgTCompra").onclick=()=>{ tipo="COMPRA"; syncTipo(); };
+  q("#rgTVenda").onclick=()=>{ tipo="VENDA"; syncTipo(); };
+  q("#rgTTransf").onclick=()=>{ tipo="TRANSFERENCIA"; syncTipo(); };
+  ["#rgBtc","#rgValor","#rgCot","#rgTrBtc","#rgTrTaxaBtc","#rgTrCot"].forEach(s=>q(s).oninput=syncCalc);
+  q("#rgCancel").onclick=closeModal;
+  const salvar=(cont)=>{
+    if(tipo==="TRANSFERENCIA"){
+      const V=parseNumeroBR(q("#rgTrBtc").value), F=parseNumeroBR(q("#rgTrTaxaBtc").value)||0;
+      const cot=parseNumeroBR(q("#rgTrCot").value);
+      const ori=(q("#rgOrigem").value||"").trim(), dst=(q("#rgDestino").value||"").trim();
+      if(!(V>0)){ toast("Informe o BTC total debitado da origem.","err"); return; }
+      if(!ori||!dst){ toast("Informe a origem e o destino.","err"); return; }
+      if(ori===dst){ toast("Origem e destino precisam ser diferentes.","err"); return; }
+      if(F<0||F>=V){ toast("A taxa de rede precisa ser menor que o total.","err"); return; }
+      const op={...(edicao||{}), id:edicao?edicao.id:novoId(), data:q("#rgData").value||hojeISO(),
+        hora:q("#rgHora").value||undefined, tipo:"TRANSFERENCIA", btc:V, taxaBtc:F, cotacao:cot,
+        brl:cot>0?V*cot:0, taxa:0, origem:ori, destino:dst, corretora:ori,
+        hash:q("#rgHash").value.trim()||undefined,
+        observacao:q("#rgObs").value.trim()||undefined,
+        comprovante:comprovante||undefined, cotacaoReferencia:(edicao?edicao.cotacaoReferencia??bin.preco:bin.preco)??undefined };
+      if(!edicao) delete op.origemCompra, delete op.destinoVenda;
+      const ch=chaveDuplicidade(op);
+      if(operacoes.some(o=>o.id!==op.id&&chaveDuplicidade(o)===ch)){ toast("Esta transferência já está registrada.","err"); return; }
+      if(edicao) operacoes=operacoes.map(o=>o.id===op.id?op:o);
+      else operacoes=[...operacoes,op];
+      renderAll(); toast(edicao?"Transferência atualizada.":"Transferência registrada.","ok");
+      if(cont&&!edicao){ openRegistrar(null); } else closeModal();
+      return; }
+    const b=parseNumeroBR(q("#rgBtc").value), v=parseNumeroBR(q("#rgValor").value);
+    if(b<=0||v<=0){ toast("Informe a quantidade de BTC e o valor em reais.","err"); return; }
+    const ci=parseNumeroBR(q("#rgCot").value), cf=ci||v/b;
+    const cor=(q("#rgCorWrap").style.display!=="none"?(q("#rgCor").value||"").trim():"99Pay")||"99Pay";
+    const loc=q("#rgLocal").value.trim();
+    const op={...(edicao||{}), id:edicao?edicao.id:novoId(), data:q("#rgData").value||hojeISO(),
+      hora:q("#rgHora").value||undefined, tipo, btc:b, brl:v, cotacao:cf, taxa:parseNumeroBR(q("#rgTaxa").value),
+      origem:edicao?edicao.origem:cor, corretora:cor, observacao:q("#rgObs").value.trim()||undefined,
+      origemCompra:tipo==="COMPRA"?loc||undefined:undefined, destinoVenda:tipo==="VENDA"?loc||undefined:undefined,
+      comprovante:comprovante||undefined, cotacaoReferencia:(edicao?edicao.cotacaoReferencia??bin.preco:bin.preco)??undefined };
+    const ch=chaveDuplicidade(op);
+    if(operacoes.some(o=>o.id!==op.id&&chaveDuplicidade(o)===ch)){ toast("Esta operação já está registrada (mesma data, tipo, BTC e valor).","err"); return; }
+    if(edicao) operacoes=operacoes.map(o=>o.id===op.id?op:o);
+    else operacoes=[...operacoes,op];
+    renderAll(); toast(edicao?"Operação atualizada.":"Operação registrada.","ok");
+    if(cont&&!edicao){ openRegistrar(null); } else closeModal();
+  };
+  q("#rgSave").onclick=()=>salvar(false);
+  const sm=q("#rgSaveMore"); if(sm) sm.onclick=()=>salvar(true);
+  syncCor(); syncTipo(); syncComp();
+}
+
+/* ============ importar planilha ============ */
+const XLSX_URL="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+const normKey=(k)=>String(k??"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+function achaCampo(linha,chaves){
+  const es=Object.entries(linha);
+  for(const ch of chaves){ const a=es.find(([k])=>normKey(k).includes(ch)); if(a&&a[1]!==""&&a[1]!=null) return a[1]; }
+  return undefined;
+}
+function parseCSV(texto){
+  const del=(texto.split("\n")[0].match(/;/g)||[]).length>=(texto.split("\n")[0].match(/,/g)||[]).length?";":",";
+  const rows=[]; let cur=[""], q=false;
+  const src=texto.replace(/^\uFEFF/,"");
+  let field="";
+  const pushRow=()=>{ cur[cur.length-1]=field; rows.push(cur); cur=[""]; field=""; };
+  for(let i=0;i<src.length;i++){ const ch=src[i];
+    if(q){ if(ch==='"'){ if(src[i+1]==='"'){ field+='"'; i++; } else q=false; } else field+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===del){ cur[cur.length-1]=field; cur.push(""); field=""; }
+    else if(ch==="\n"){ pushRow(); } else if(ch==="\r"){} else field+=ch; }
+  if(field!==""||cur.length>1){ cur[cur.length-1]=field; rows.push(cur); }
+  if(!rows.length) return [];
+  const head=rows[0].map(h=>String(h).trim());
+  return rows.slice(1).filter(r=>r.some(c=>String(c).trim()!=="")).map(r=>{ const o={}; head.forEach((h,i)=>o[h]=r[i]??""); return o; });
+}
+function linhaParaOp(linha, origemNome){
+  const data=parseDataISO(achaCampo(linha,["data","date","dia"]));
+  const tipo=parseTipo(achaCampo(linha,["tipo","operacao","type","side"]));
+  const btc=parseNumeroBR(achaCampo(linha,["btc","quantidade","qtd","amount","cripto"]));
+  const valor=parseNumeroBR(achaCampo(linha,["valor","brl","reais","total","montante"]));
+  const cot=parseNumeroBR(achaCampo(linha,["cotacao","preco","price"]));
+  const taxa=parseNumeroBR(achaCampo(linha,["taxa","fee","tarifa"]));
+  if(tipo==="TRANSFERENCIA"){
+    const taxaBtc=parseNumeroBR(achaCampo(linha,["taxa btc","taxa rede","fee btc","taxabtc"]))||(cot>0?taxa/cot:0);
+    const ori=String(achaCampo(linha,["origem","from","source"])??"").trim();
+    const dst=String(achaCampo(linha,["destino","para","dest","to"])??"").trim();
+    const h=String(achaCampo(linha,["hash","txid"])??"").trim();
+    return { id:novoId(), data, tipo, btc, brl:valor||(cot>0?btc*cot:0), cotacao:cot||(btc>0?valor/btc:0),
+      taxa:0, taxaBtc, origem:ori||origemNome||"planilha", destino:dst,
+      corretora:ori||origemNome||"planilha", hash:h||undefined };
+  }
+  return { id:novoId(), data, tipo, btc, brl:valor, cotacao:cot||(btc>0?valor/btc:0), taxa,
+    origem:origemNome||"planilha",
+    origemCompra:tipo==="COMPRA"?String(achaCampo(linha,["origem da compra"])??"").trim()||undefined:undefined,
+    destinoVenda:tipo==="VENDA"?String(achaCampo(linha,["destino da venda"])??"").trim()||undefined:undefined };
+}
+function openImportar(){
+  let previa=[], ignorar=true, nomeArq="";
+  const ov=openModal(`
+    <div class="body">
+      <div><h2>Importar operações (CSV / XLSX)</h2>
+      <p class="desc">As operações são adicionadas ao histórico existente, sem apagar nada. Colunas reconhecidas: data, tipo (compra/venda/transferência), BTC, valor, cotação, taxa (R$) e — para transferências — taxa BTC, origem, destino e hash.</p></div>
+      <div class="drop"><div style="font-size:28px;color:var(--gold)">▦</div>
+        <button class="btn btn-sec" id="impPick" style="margin-top:8px">Escolher arquivo</button>
+        <p class="hint" id="impNome"></p><p class="hint" id="impLoad"></p></div>
+      <div id="impPrevZone" style="display:none">
+        <p class="hint" id="impInfo"></p>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="impDup" checked> Ignorar duplicadas</label>
+        <div class="prev-tbl" style="margin-top:8px"><table><thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right">BTC</th><th style="text-align:right">Valor</th><th style="text-align:right">Cotação</th><th style="text-align:right">Status</th></tr></thead><tbody id="impBody"></tbody></table></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="impCancel">Cancelar</button><button class="btn" id="impOk" disabled>Adicionar</button></div>
+    </div>`, true);
+  const q=(s)=>ov.querySelector(s);
+  q("#impCancel").onclick=closeModal;
+  q("#impPick").onclick=()=>$("fileImport").click();
+  q("#impDup").onchange=(e)=>{ ignorar=e.target.checked; drawPrev(); };
+  async function lerArquivo(file){
+    q("#impLoad").innerHTML=`<span class="spin"></span> Lendo arquivo…`;
+    try{
+      let linhas=[];
+      try{ await loadScript(XLSX_URL); }catch{}
+      if(window.XLSX){
+        const buf=await file.arrayBuffer();
+        const wb=XLSX.read(buf,{cellDates:true});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        linhas=XLSX.utils.sheet_to_json(ws,{defval:""});
+      }else{
+        linhas=parseCSV(await file.text());
+      }
+      const ex=new Set(operacoes.map(chaveDuplicidade)), seen=new Set();
+      previa=linhas.map(l=>linhaParaOp(l,file.name)).filter(o=>o.btc>0||o.brl>0).map(op=>{
+        const ch=chaveDuplicidade(op), dup=ex.has(ch)||seen.has(ch); seen.add(ch); return {op,duplicada:dup}; });
+      nomeArq=file.name;
+      if(!previa.length) toast("Nenhuma operação reconhecida no arquivo.","err");
+      drawPrev();
+    }catch{ toast("Não foi possível ler este arquivo. Use CSV ou XLSX.","err"); }
+    q("#impLoad").textContent="";
+    $("fileImport").value="";
+  }
+  function drawPrev(){
+    q("#impNome").textContent=nomeArq;
+    if(!previa.length){ q("#impPrevZone").style.display="none"; q("#impOk").disabled=true; return; }
+    const dups=previa.filter(p=>p.duplicada).length, add=previa.length-(ignorar?dups:0);
+    q("#impPrevZone").style.display="block";
+    q("#impInfo").innerHTML=`${previa.length} linha(s) lida(s) · ${dups} duplicada(s) · <b style="color:var(--gold)">${add} a adicionar</b>`;
+    q("#impBody").innerHTML=previa.map(p=>`<tr><td>${dataBR(p.op.data)}</td>
+      <td style="color:${p.op.tipo==="COMPRA"?"var(--gain)":p.op.tipo==="VENDA"?"var(--loss)":"#7dd3fc"};font-weight:700">${p.op.tipo}</td>
+      <td class="num" style="text-align:right">${btcFmt(p.op.btc)}</td><td class="num" style="text-align:right">${brl(p.op.brl)}</td>
+      <td class="num" style="text-align:right">${brl(p.op.cotacao)}</td>
+      <td style="text-align:right">${p.duplicada?'<span style="color:var(--loss);font-size:12px">⚠ duplicada</span>':'<span style="color:var(--gain);font-size:12px">nova</span>'}</td></tr>`).join("");
+    q("#impOk").disabled=add<=0; q("#impOk").textContent=add>0?`Adicionar ${add} operação(ões)`:"Adicionar";
+  }
+  q("#impOk").onclick=()=>{
+    const sel=previa.filter(p=>!(ignorar&&p.duplicada)).map(p=>p.op);
+    if(!sel.length){ toast("Nenhuma operação nova para adicionar.","err"); return; }
+    const ex=new Set(operacoes.map(chaveDuplicidade));
+    operacoes=[...operacoes,...sel.filter(o=>!ex.has(chaveDuplicidade(o)))];
+    renderAll(); toast(`${sel.length} operação(ões) adicionada(s).`,"ok"); closeModal();
+  };
+  $("fileImport").onchange=()=>{ const f=$("fileImport").files[0]; if(f) lerArquivo(f); };
+}
+
+/* ============ importar por imagem ============ */
+const TESS_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+function extrairCampos(texto){
+  const raw=String(texto||"");
+  const t=raw.toLowerCase();
+  const tn=t.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const isTr=/(transfer|enviou|enviad|envio|retirada|saque|withdraw|taxa de rede|hash da transa|\bpara\s+bc1|\bpara\s+[13][a-z0-9]{25})/.test(tn);
+  const tipo=isTr?"TRANSFERENCIA":(/\b(venda|vender|vendido|sell)\b/.test(tn)?"VENDA":"COMPRA");
+  const nums=(re)=>{ const r=[]; for(const m of t.matchAll(re)){ const n=parseNumeroBR(m[1]); if(n>0) r.push(n); } return r; };
+  const reais=nums(/r?\$\s*([\d.,]+)/g);
+  const numRe="([\\d]+[\\.,]?[\\d.,]*)";
+  function rotulado(padroes, janela){
+    const J=janela||60;
+    for(const p of padroes){
+      const re=new RegExp(p+"[\\s\\S]{0,"+J+"}?"+numRe,"g");
+      for(const m of tn.matchAll(re)){
+        const n=parseNumeroBR(m[1]);
+        if(n>0) return n;
+      }
+    }
+    return 0;
+  }
+  function rotuladoComZero(padroes, janela){
+    const J=janela||60;
+    for(const p of padroes){
+      const re=new RegExp(p+"[\\s\\S]{0,"+J+"}?"+numRe,"g");
+      for(const m of tn.matchAll(re)){
+        const s=String(m[1]).trim();
+        if(!/\d/.test(s)) continue;
+        return parseNumeroBR(s);
+      }
+    }
+    return null;
+  }
+  // Cotação = taxa de conversão (pode vir sem R$, ex.: "423647,92 BRL / 1 BTC")
+  const cotRot=rotulado([
+    "taxa\\s*de\\s*conversao",
+    "conversao",
+    "cotacao",
+    "preco\\s*(por|unitario|do\\s*ativo|executado|medio|de\\s*compra|de\\s*venda)?",
+    "valor\\s*por\\s*btc",
+    "por\\s*btc"
+  ],70);
+  // Taxa de transação (permite 0,00). Exclui "conversão" de propósito.
+  let taxaTrans=rotuladoComZero([
+    "taxa\\s*de\\s*transacao",
+    "taxa\\s*de\\s*transa",
+    "tarifa\\s*de\\s*transa",
+    "custo\\s*de\\s*transa"
+  ],50);
+  // Valor total rotulado (venda x compra)
+  const valorRot=tipo==="VENDA"?rotulado([
+    "voce\\s*esta\\s*vendendo",
+    "esta\\s*vendendo",
+    "valor\\s*total\\s*da\\s*venda",
+    "valor\\s*da\\s*venda",
+    "total\\s*da\\s*venda",
+    "voce\\s*vendeu"
+  ],50):rotulado([
+    "voce\\s*esta\\s*comprando",
+    "esta\\s*comprando",
+    "valor\\s*total\\s*da\\s*compra",
+    "valor\\s*da\\s*compra",
+    "total\\s*da\\s*compra",
+    "voce\\s*comprou"
+  ],50);
+  const valorGen=rotulado(["valor\\s*total"],50);
+  // BTCs genéricos, ignorando o "1 BTC" denominador da conversão ("X BRL / 1 BTC")
+  let btcQtd=0;
+  {
+    const cand=[];
+    for(const m of tn.matchAll(/([\d.,]+)\s*(?:btc|bitcoin)/g)){
+      const n=parseNumeroBR(m[1]);
+      if(!(n>0)) continue;
+      const idx=(typeof m.index==="number")?m.index:0;
+      const antes=tn.slice(Math.max(0,idx-60),idx);
+      const depois=tn.slice(idx,idx+10);
+      const ehDenominador=Math.abs(n-1)<1e-9&&(antes.includes("conversao")||antes.includes("cotacao")||antes.includes("brl")||antes.includes("/")||antes.includes("por"));
+      if(ehDenominador) continue;
+      // evita capturar o próprio número da cotação quando OCR cola "423647,92btc"
+      void depois;
+      cand.push(n);
+    }
+    if(cand.length) btcQtd=cand[0];
+  }
+  let cot=cotRot||0, valor=valorRot||valorGen||0;
+  if(!cot && reais.length){
+    if(btcQtd>0 && reais.length===1){
+      // Ex.: "R$ 1000,00 0,00243155 BTC" -> 1000 é o valor, cotação = valor/BTC
+      const impl=reais[0]/btcQtd;
+      if(impl>=10000 && impl<=10000000){ valor=reais[0]; cot=impl; }
+      else{ cot=reais[0]; valor=btcQtd*cot; }
+    }else if(reais.length===1 && !btcQtd){
+      valor=reais[0];
+    }else{
+      cot=Math.max(...reais);
+      valor=reais.filter(v=>v!==cot).sort((a,b)=>b-a)[0]??0;
+      if(!valor && reais.length===1) valor=0;
+    }
+  }else if(cot && !valor && reais.length){
+    valor=Math.max(...reais);
+    if(valor===cot && reais.length>1) valor=reais.filter(v=>v!==cot).sort((a,b)=>b-a)[0]??cot;
+  }
+  if(!valor && cotRot && reais.length) valor=Math.max(...reais);
+  // Deriva o terceiro a partir dos outros dois (caso típico da venda 99Pay: tem R$ + conversão, falta BTC)
+  if(!(btcQtd>0) && valor>0 && cot>0) btcQtd=valor/cot;
+  if(!(valor>0) && btcQtd>0 && cot>0) valor=btcQtd*cot;
+  if(!(cot>0) && valor>0 && btcQtd>0) cot=valor/btcQtd;
+  // Taxa genérica (fora transferência usa R$; ignora "conversão")
+  let taxaR=taxaTrans;
+  if(taxaR==null){
+    for(const m of tn.matchAll(/(taxa|tarifa|fee|custo)[\s\S]{0,30}?([\d]+[\.,]?[\d.,]*)/g)){
+      const ctx=String(m[0]).slice(0,40);
+      if(ctx.includes("conversao")) continue;
+      taxaR=parseNumeroBR(m[2]);
+      break;
+    }
+    if(taxaR==null) taxaR=0;
+  }
+  // Transferência: taxa de rede vem em BTC (ex.: "Taxa de rede 0,0001 BTC")
+  let taxaBtcCalc="";
+  if(isTr){
+    let feeBtc=null;
+    for(const m of tn.matchAll(/taxa(?:\s*de)?(?:\s*(rede|transacao|transa|network|mineracao))?[\s\S]{0,30}?([\d.,]+)\s*btc/g)){
+      const n=parseNumeroBR(m[2]);
+      if(n>0){ feeBtc=n; break; }
+    }
+    if(feeBtc==null){
+      // Sem "BTC" explícito após a taxa: pode ser taxa em R$ -> converte
+      feeBtc=(cot>0 && (taxaR||0)>0 && (taxaR||0)<1000)?(taxaR/cot):0;
+      // Se a taxa lida for grande demais p/ ser BTC (ex.: R$), zera e deixa cot guiar
+      if(!(feeBtc>0) || feeBtc>=btcQtd) feeBtc=0;
+    }
+    // Se o total inclui a taxa e só temos o total, mantém taxaBtc detectada (ou vazio)
+    taxaBtcCalc=feeBtc>0?feeBtc.toFixed(11).replace(".",","):"";
+  }
+  let dm=t.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/), data="";
+  if(dm){ data=`${dm[3].length===2?`20${dm[3]}`:dm[3]}-${dm[2].padStart(2,"0")}-${dm[1].padStart(2,"0")}`; }
+  else{ const mp=t.match(/(\d{1,2})\s+de\s+([a-zç]+)\.?\s+de\s+(\d{4})/);
+    if(mp){ const meses={jan:"01",fev:"02",mar:"03",abr:"04",mai:"05",jun:"06",jul:"07",ago:"08",set:"09",out:"10",nov:"11",dez:"12"};
+      const mm=meses[mp[2].slice(0,3)]; data=mm?`${mp[3]}-${mm}-${mp[1].padStart(2,"0")}`:hojeISO(); }
+    else data=hojeISO(); }
+  const hm=t.match(/(\d{1,2}):(\d{2})/);
+  const hmTx=t.match(/(\d{1,2})\s+de\s+[a-zç]+\.?\s+de\s+\d{4},?\s+(\d{1,2}):(\d{2})/);
+  const hashM=t.match(/([0-9a-z]{4,}[.…]{2,3}[0-9a-z]{4,})/);
+  const fmt=(n,c)=>(n>0?n.toFixed(c).replace(".",","):"");
+  const fmtTaxa=(n)=>(n!=null&&Number.isFinite(n)&&n>=0?n.toFixed(2).replace(".",","):"");
+  return { data, hora:hmTx?`${hmTx[2].padStart(2,"0")}:${hmTx[3]}`:(hm?`${hm[1].padStart(2,"0")}:${hm[2]}`:""), tipo,
+    btc:btcQtd>0?btcQtd.toFixed(11).replace(".",","):"", brl:fmt(valor,2), cotacao:fmt(cot,2),
+    taxa:isTr?"":fmtTaxa(taxaR||0), taxaBtc:isTr?taxaBtcCalc:"",
+    origem:"", destino:"", origemCompra:"", destinoVenda:"", hash:hashM?hashM[1]:"" };
+}
+function openImagem(){
+  let imagem=null, campos=null, corretora="99Pay", lendo=false;
+  const ov=openModal(`
+    <div class="body">
+      <div><h2>Importar operação por imagem</h2>
+      <p class="desc">Selecione o print da tela da operação. Os campos lidos são apenas uma sugestão: nada entra no histórico sem a sua confirmação.</p></div>
+      <div id="imgZone"><div class="drop"><div style="font-size:28px;color:var(--gold)">◉</div>
+        <button class="btn btn-sec" id="imgPick" style="margin-top:8px">Escolher print</button>
+        <p class="hint" id="imgStatus"></p></div></div>
+      <div id="imgForm" style="display:none"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="imgCancel">Cancelar</button><button class="btn" id="imgOk" disabled>Confirmar e adicionar</button></div>
+    </div>`, true);
+  const q=(s)=>ov.querySelector(s);
+  q("#imgCancel").onclick=closeModal;
+  q("#imgPick").onclick=()=>$("fileImagem").click();
+  $("fileImagem").onchange=()=>{ const f=$("fileImagem").files[0]; if(f) processar(f); $("fileImagem").value=""; };
+  async function processar(file){
+    lendo=true; q("#imgStatus").innerHTML=`<span class="spin"></span> Preparando imagem…`;
+    try{
+      imagem=await comprimirImagem(file,1100,.85);
+      drawImg(`Lendo o texto da imagem…`);
+      try{
+        await loadScript(TESS_URL);
+        const res=await window.Tesseract.recognize(imagem,"por");
+        const texto=res&&res.data?res.data.text:"";
+        campos=extrairCampos(texto||"");
+        drawImg(texto.trim()?"Texto lido. Confira cada campo antes de confirmar.":"Nada foi reconhecido. Preencha os campos manualmente.");
+      }catch{ campos={data:hojeISO(),hora:"",tipo:"COMPRA",btc:"",brl:"",cotacao:"",taxa:"",taxaBtc:"",origem:"",destino:"",origemCompra:"",destinoVenda:"",hash:""};
+        drawImg("Leitura automática indisponível. Preencha os campos olhando o print."); }
+    }catch{ toast("Não foi possível abrir esta imagem.","err"); }
+    lendo=false;
+  }
+  function drawImg(status){
+    q("#imgZone").innerHTML=`<div style="display:grid;gap:12px;grid-template-columns:220px 1fr" class="imggrid">
+      <div><img class="imgprev" src="${imagem}" alt="Print"><br><button class="btn btn-ghost btn-sm" id="imgTroca" style="margin-top:6px;width:100%;justify-content:center">Trocar imagem</button></div>
+      <div><p class="hint">${lendo?'<span class="spin"></span> ':''}${esc(status||"")}</p><div id="imgFields"></div></div></div>
+      <style>@media(max-width:640px){.imggrid{grid-template-columns:1fr !important}}</style>`;
+    q("#imgTroca").onclick=()=>$("fileImagem").click();
+    drawFields();
+  }
+  function drawFields(){
+    if(!campos){ return; }
+    q("#imgForm").style.display="block"; q("#imgOk").disabled=false;
+    const isTr=campos.tipo==="TRANSFERENCIA";
+    q("#imgFields").innerHTML=`
+      <div class="typtog" style="margin-bottom:8px"><button type="button" id="imC" class="${campos.tipo==="COMPRA"?"on-c":""}">COMPRA</button><button type="button" id="imV" class="${campos.tipo==="VENDA"?"on-v":""}">VENDA</button><button type="button" id="imT" class="${isTr?"on-t":""}">TRANSFERÊNCIA</button></div>
+      <div class="row2">
+        <div><label class="lbl">Data</label><input class="inp" type="date" id="imData" value="${esc(campos.data)}"></div>
+        <div><label class="lbl">Hora</label><input class="inp" type="time" id="imHora" value="${esc(campos.hora)}"></div>
+        ${isTr?`
+        <div><label class="lbl">BTC debitado (total)</label><input class="inp num" id="imBtc" value="${esc(campos.btc)}"></div>
+        <div><label class="lbl">Taxa de rede (BTC)</label><input class="inp num" id="imTaxaBtc" value="${esc(campos.taxaBtc||"")}"></div>
+        <div><label class="lbl">Cotação</label><input class="inp num" id="imCot" value="${esc(campos.cotacao)}"></div>
+        <div><label class="lbl">Hash (opcional)</label><input class="inp" id="imHash" value="${esc(campos.hash||"")}"></div>`:`
+        <div><label class="lbl">Valor em R$</label><input class="inp num" id="imValor" value="${esc(campos.brl)}"></div>
+        <div><label class="lbl">Quantidade BTC</label><input class="inp num" id="imBtc" value="${esc(campos.btc)}"></div>
+        <div><label class="lbl">Cotação</label><input class="inp num" id="imCot" value="${esc(campos.cotacao)}"></div>
+        <div><label class="lbl">Taxa R$</label><input class="inp num" id="imTaxa" value="${esc(campos.taxa)}"></div>`}
+      </div>
+      ${isTr?`
+      <div class="row2" style="margin-top:8px">
+        <div><label class="lbl">Origem (corretora ou wallet)</label><input class="inp" id="imOrigem" list="imLocList" value="${esc(campos.origem||"")}"></div>
+        <div><label class="lbl">Destino (corretora ou wallet)</label><input class="inp" id="imDestino" list="imLocList" value="${esc(campos.destino||"")}"></div>
+      </div><datalist id="imLocList">${corretoras().map(c=>`<option value="${esc(c)}">`).join("")}</datalist>`:`
+      <div style="margin-top:8px"><label class="lbl">${campos.tipo==="COMPRA"?"Origem da compra (opcional)":"Destino da venda (opcional)"}</label>
+      <input class="inp" id="imLocal" value="${esc(campos.tipo==="COMPRA"?campos.origemCompra:campos.destinoVenda)}"></div>
+      <div style="margin-top:8px"><label class="lbl">Corretora</label><input class="inp" id="imCor" value="${esc(corretora)}"></div>`}
+      ${bin.preco&&parseNumeroBR(campos.cotacao)>0?`<p class="hint">Referência Binance agora: <b class="num">${brl(bin.preco)}</b> · spread <b class="num">${((((parseNumeroBR(campos.cotacao)-bin.preco)/bin.preco*100>=0)?"+":"")+((parseNumeroBR(campos.cotacao)-bin.preco)/bin.preco*100).toFixed(2))}%</b></p>`:""}`;
+    const bind=(id,key)=>{ const el=q("#"+id); if(el) el.oninput=()=>{ campos[key]=el.value; }; };
+    q("#imC").onclick=()=>{ campos.tipo="COMPRA"; drawFields(); };
+    q("#imV").onclick=()=>{ campos.tipo="VENDA"; drawFields(); };
+    q("#imT").onclick=()=>{ campos.tipo="TRANSFERENCIA"; drawFields(); };
+    bind("imData","data"); bind("imHora","hora"); bind("imValor","brl"); bind("imBtc","btc"); bind("imCot","cotacao"); bind("imTaxa","taxa");
+    bind("imTaxaBtc","taxaBtc"); bind("imHash","hash"); bind("imOrigem","origem"); bind("imDestino","destino");
+    const locEl=q("#imLocal"); if(locEl) locEl.oninput=(e)=>{ if(campos.tipo==="COMPRA") campos.origemCompra=e.target.value; else campos.destinoVenda=e.target.value; };
+    const corEl=q("#imCor"); if(corEl) corEl.oninput=(e)=>{ corretora=e.target.value; };
+  }
+  q("#imgOk").onclick=()=>{
+    if(!campos) return;
+    if(campos.tipo==="TRANSFERENCIA"){
+      const V=parseNumeroBR(campos.btc), F=parseNumeroBR(campos.taxaBtc)||0, cot=parseNumeroBR(campos.cotacao);
+      const ori=(campos.origem||"").trim(), dst=(campos.destino||"").trim();
+      if(!(V>0)){ toast("Confira o BTC total do print.","err"); return; }
+      if(!ori||!dst){ toast("Informe a origem e o destino.","err"); return; }
+      if(ori===dst){ toast("Origem e destino precisam ser diferentes.","err"); return; }
+      if(F<0||F>=V){ toast("Confira a taxa de rede (precisa ser menor que o total).","err"); return; }
+      if(!(cot>0)){ toast("Confira a cotação (Preço do ativo).","err"); return; }
+      const op={ id:novoId(), data:campos.data, hora:campos.hora||undefined, tipo:"TRANSFERENCIA",
+        btc:V, taxaBtc:F, cotacao:cot, brl:V*cot, taxa:0, origem:ori, destino:dst, corretora:ori,
+        hash:(campos.hash||"").trim()||undefined,
+        comprovante:imagem||undefined, cotacaoReferencia:bin.preco??undefined };
+      if(operacoes.some(o=>chaveDuplicidade(o)===chaveDuplicidade(op))){ toast("Esta operação já está registrada.","err"); return; }
+      operacoes=[...operacoes,op]; renderAll(); toast("Transferência adicionada a partir do print.","ok"); closeModal();
+      return; }
+    const b=parseNumeroBR(campos.btc), v=parseNumeroBR(campos.brl);
+    if(b<=0||v<=0){ toast("Confira a quantidade de BTC e o valor em reais.","err"); return; }
+    const op={ id:novoId(), data:campos.data, hora:campos.hora||undefined, tipo:campos.tipo, btc:b, brl:v,
+      cotacao:parseNumeroBR(campos.cotacao)||v/b, taxa:parseNumeroBR(campos.taxa),
+      origem:`${(corretora||"").trim()||"99Pay"} (print)`, corretora:(corretora||"").trim()||"99Pay",
+      origemCompra:campos.tipo==="COMPRA"?campos.origemCompra.trim()||undefined:undefined,
+      destinoVenda:campos.tipo==="VENDA"?campos.destinoVenda.trim()||undefined:undefined,
+      comprovante:imagem||undefined, cotacaoReferencia:bin.preco??undefined };
+    if(operacoes.some(o=>chaveDuplicidade(o)===chaveDuplicidade(op))){ toast("Esta operação já está registrada.","err"); return; }
+    operacoes=[...operacoes,op]; renderAll(); toast("Operação adicionada a partir do print.","ok"); closeModal();
+  };
+}
+
+/* ============ saldo inicial ============ */
+function renderIniciais(){
+  const listEl=$("iniLista"); if(!listEl) return;
+  const dl=$("iniCorretoraList");
+  if(dl) dl.innerHTML=corretoras().map(c=>`<option value="${esc(c)}">`).join("");
+  const nomes=Object.keys(saldosIniciais).sort();
+  if(!nomes.length){
+    listEl.innerHTML=`<p class="hint" style="margin:0">Nenhum saldo inicial cadastrado. O saldo exibido vem só das operações.</p>`;
+  }else{
+    listEl.innerHTML=nomes.map(n=>{
+      const ini=saldosIniciais[n];
+      const PF=processarPortfolio(operacoesComInicial(operacoes,"TODAS"),metodo,null);
+      const tot=(PF.locais[n]?PF.locais[n].saldoBTC:ini.btc);
+      return `<div style="border:1px solid var(--glass-border);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:rgba(255,255,255,.02)">
+        <div style="font-size:13px"><b>${esc(n)}</b> · <span class="num">${btcFmt(ini.btc)}</span> · custo ${brl(ini.brl||0)}${ini.btc>0?` (${brl((ini.brl||0)/ini.btc)} / BTC)`:""} · ${dataBR(ini.data)}
+        <br><span class="hint">Total com operações: ${btcFmt(tot)}</span></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" data-ini-edit="${esc(n)}">Editar</button>
+          <button class="btn btn-ghost btn-sm" data-ini-del="${esc(n)}" style="color:var(--loss)">Remover</button>
+        </div></div>`;
+    }).join("");
+    listEl.querySelectorAll("[data-ini-del]").forEach(b=>b.addEventListener("click",()=>{
+      delete saldosIniciais[b.getAttribute("data-ini-del")]; renderAll(); toast("Saldo inicial removido.","ok");
+    }));
+    listEl.querySelectorAll("[data-ini-edit]").forEach(b=>b.addEventListener("click",()=>{
+      const n=b.getAttribute("data-ini-edit"), ini=saldosIniciais[n]; if(!ini) return;
+      $("iniCorretora").value=n; $("iniData").value=ini.data||"2026-01-01";
+      $("iniBtc").value=String(ini.btc).replace(".",","); $("iniValor").value=String(ini.brl||0).replace(".",",");
+      $("iniCorretora").focus(); toast(`Editando saldo inicial de ${n} — salve para confirmar.`,"ok");
+    }));
+  }
+  const cor=($("iniCorretora").value||"").trim()||CORRETORA_PADRAO;
+  const soOp=saldoSoOperacoes(cor);
+  const iniAtual=saldosIniciais[cor]?saldosIniciais[cor].btc:0;
+  const info=$("iniCalcInfo");
+  if(info){
+    const meta=parseNumeroBR($("iniMeta").value);
+    if(!(meta>0)) info.textContent=`Pelas operações, ${cor} tem ${btcFmt(soOp)}${iniAtual?` + inicial ${btcFmt(iniAtual)} = total ${btcFmt(soOp+iniAtual)}`:""}. Digite o saldo real acima para calcular a diferença.`;
+    else{
+      const diff=meta-soOp;
+      info.innerHTML=diff>1e-12?`Pelas operações, ${esc(cor)} tem <b class="num">${btcFmt(soOp)}</b>. Para chegar a <b class="num">${btcFmt(meta)}</b>, cadastre <b class="num" style="color:var(--gold)">${btcFmt(diff)}</b> como saldo inicial (preencha o custo abaixo e salve).`
+        :diff<-1e-12?`<span style="color:var(--loss)">Atenção: pelas operações ${esc(cor)} já tem <b class="num">${btcFmt(soOp)}</b>, acima do saldo real <b class="num">${btcFmt(meta)}</b> (${btcFmt(diff)}). Revise as operações — saldo inicial negativo não é permitido.</span>`
+       :`Os saldos já conferem (${btcFmt(soOp)} pelas operações).`;
+    }
+  }
+}
+function salvarSaldoInicial(){
+  const cor=($("iniCorretora").value||"").trim()||CORRETORA_PADRAO;
+  const btc=parseNumeroBR($("iniBtc").value);
+  const brlV=parseNumeroBR($("iniValor").value);
+  const data=$("iniData").value||"2026-01-01";
+  if(!(btc>0)){ toast("Informe o BTC do saldo inicial (maior que zero).","err"); return; }
+  if(!(brlV>=0)){ toast("Valor inválido.","err"); return; }
+  saldosIniciais[cor]={ btc, brl:brlV, data };
+  renderAll();
+  if(brlV===0) toast(`Saldo inicial de ${cor} salvo (${btcFmt(btc)} com custo zerado — o lucro futuro ficará maior).`,"ok");
+  else toast(`Saldo inicial de ${cor} salvo: ${btcFmt(btc)} por ${brl(brlV)}.`,"ok");
+}
+
+/* ============ export/backup/restore/print/capture ============ */
+function exportarCSV(){ baixarArquivo(`operacoes-99pay-${hojeISO()}.csv`,operacoesParaCSV(operacoes),"text/csv;charset=utf-8"); toast("CSV exportado.","ok"); }
+function backupJSON(){ baixarArquivo(`backup-99pay-${hojeISO()}.json`,JSON.stringify({operacoes,saldosIniciais,metodo,cotacaoManual:cotacaoManualVal()},null,2),"application/json"); toast("Backup gerado.","ok"); }
+async function restaurarJSON(file){
+  try{ const d=JSON.parse(await file.text()); if(!Array.isArray(d.operacoes)) throw new Error("fmt");
+    operacoes=d.operacoes.map(normalizarOperacao);
+    saldosIniciais=normalizarSaldosIniciais(d.saldosIniciais);
+    if(d.metodo==="FIFO"||d.metodo==="MEDIO") metodo=d.metodo;
+    cotacaoTexto=typeof d.cotacaoManual==="number"?String(d.cotacaoManual):"";
+    $("cotacaoInput").value=cotacaoTexto; $("metodoSelect").value=metodo;
+    renderAll(); toast("Backup restaurado.","ok");
+  }catch{ toast("Arquivo de backup inválido.","err"); }
+  $("fileRestaurar").value="";
+}
+async function capturarPNG(){
+  try{
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    const canvas=await window.html2canvas($("painelEl"),{backgroundColor:"#14110c",scale:2});
+    const a=document.createElement("a"); a.download=`dashboard-99pay-${hojeISO()}.png`; a.href=canvas.toDataURL("image/png"); a.click();
+    toast("Imagem capturada.","ok");
+  }catch{ toast("Captura de imagem indisponível neste navegador.","err"); }
+}
+
+/* ============ wire up ============ */
+$("metodoSelect").value=metodo;
+$("cotacaoInput").value=cotacaoTexto;
+$("tabsNav").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  $("tabsNav").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  const t=b.getAttribute("data-tab");
+  document.querySelectorAll("[data-panel]").forEach(p=>{ p.hidden=p.getAttribute("data-panel")!==t; });
+  if(t==="graficos") void renderCharts();
+}));
+$("metodoSelect").addEventListener("change",(e)=>{ metodo=e.target.value; renderAll(); });
+$("cotacaoInput").addEventListener("input",(e)=>{ cotacaoTexto=e.target.value; renderAll(); });
+$("binRefreshBtn").addEventListener("click",()=>void atualizarBin());
+$("fCorretora").addEventListener("change",(e)=>{ F.corretora=e.target.value; renderAll(); });
+$("fTipo").addEventListener("change",(e)=>{ F.tipo=e.target.value; renderTabela(); });
+$("fOrigem").addEventListener("change",(e)=>{ F.origem=e.target.value; renderTabela(); });
+$("fDestino").addEventListener("change",(e)=>{ F.destino=e.target.value; renderTabela(); });
+$("fDe").addEventListener("change",(e)=>{ F.de=e.target.value; renderTabela(); });
+$("fAte").addEventListener("change",(e)=>{ F.ate=e.target.value; renderTabela(); });
+$("limpaFiltrosBtn").addEventListener("click",()=>{ F={tipo:"TODOS",corretora:"TODAS",origem:"TODAS",destino:"TODOS",de:"",ate:""}; renderAll(); });
+$("novaOpBtn").addEventListener("click",()=>openRegistrar(null));
+$("impOpBtn").addEventListener("click",openImportar);
+$("imgOpBtn").addEventListener("click",openImagem);
+$("csvBtn").addEventListener("click",exportarCSV);
+$("csvBtn2").addEventListener("click",exportarCSV);
+$("bkpBtn").addEventListener("click",backupJSON);
+$("bkpBtn2").addEventListener("click",backupJSON);
+const trigRestore=()=>$("fileRestaurar").click();
+$("rstBtn").addEventListener("click",trigRestore);
+$("rstBtn2").addEventListener("click",trigRestore);
+$("fileRestaurar").addEventListener("change",()=>{ const f=$("fileRestaurar").files[0]; if(f) void restaurarJSON(f); });
+$("prtBtn").addEventListener("click",()=>window.print());
+$("pngBtn").addEventListener("click",()=>void capturarPNG());
+$("relCsvBtn").addEventListener("click",exportarMensalCSV);
+$("relPrintBtn").addEventListener("click",()=>window.print());
+$("resetBtn").addEventListener("click",()=>{ if(confirm("Voltar às 4 operações iniciais? Isso também apaga os saldos iniciais.")){ operacoes=OPERACOES_INICIAIS.map(o=>({...o})); saldosIniciais={}; renderAll(); toast("Operações iniciais restauradas.","ok"); } });
+$("iniSalvarBtn").addEventListener("click",salvarSaldoInicial);
+$("iniLimparBtn").addEventListener("click",()=>{ $("iniBtc").value=""; $("iniValor").value=""; $("iniMeta").value=""; renderIniciais(); });
+$("iniCorretora").addEventListener("input",()=>renderIniciais());
+$("iniMeta").addEventListener("input",()=>renderIniciais());
+$("iniCalcBtn").addEventListener("click",()=>{
+  const cor=($("iniCorretora").value||"").trim()||CORRETORA_PADRAO;
+  const meta=parseNumeroBR($("iniMeta").value);
+  if(!(meta>0)){ toast("Digite o saldo real (BTC) para calcular.","err"); return; }
+  const soOp=saldoSoOperacoes(cor);
+  const diff=meta-soOp;
+  if(diff<=1e-12){ toast("Pelas operações o saldo já está igual ou acima do real — revise as operações.","err"); renderIniciais(); return; }
+  $("iniBtc").value=String(diff.toFixed(8)).replace(".",",");
+  if(!$("iniCorretora").value) $("iniCorretora").value=cor;
+  const primeira=operacoes.filter(o=>corretoraDe(o)===cor).map(o=>o.data).sort()[0];
+  if(primeira){ try{ const d=new Date(primeira+"T12:00:00"); d.setDate(d.getDate()-1); $("iniData").value=d.toISOString().slice(0,10); }catch{} }
+  renderIniciais();
+  toast(`Diferença calculada: ${btcFmt(diff)} — confira o custo e clique em Salvar.`,"ok");
+  $("iniValor").focus();
+});
+
+(function init(){
+  const c=lerCacheCot(); if(c){ bin.preco=c.preco; bin.atualizadoEm=c.atualizadoEm; }
+  renderAll();
+  void atualizarBin();
+  setInterval(()=>void atualizarBin(),30000);
+})();
+</script>
+
+</body>
+</html>
