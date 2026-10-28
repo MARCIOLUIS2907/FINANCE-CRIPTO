@@ -9,7 +9,7 @@ Painel de controle de operações de Bitcoin: saldo, custo médio, FIFO, lucro r
 
 ## Abas
 
-Resumo · Operações · Gráficos · Análise · Relatórios · Configurações (backup/restauração + saldo inicial) · Ajuda.
+Resumo · Operações · Gráficos · Análise · Relatórios · Configurações (backup/restauração + saldo inicial + publicar no GitHub) · Ajuda.
 
 ## Dados
 
