@@ -63,6 +63,10 @@
     box-shadow:0 0 18px rgba(34,211,238,.28); transition:transform .15s ease, box-shadow .15s ease, filter .15s ease, border-color .15s ease; }
   .btn:hover{ filter:brightness(1.06); transform:translateY(-1px); box-shadow:0 0 26px rgba(34,211,238,.4); }
   .btn:active{ transform:translateY(0); }
+  .btn-primary{ background:linear-gradient(135deg,#0891b2,#22d3ee 55%,#67e8f9); color:#03252e; font-weight:800; font-size:14px;
+    padding:11px 18px; border:1px solid rgba(255,255,255,.75); letter-spacing:.01em;
+    box-shadow:0 0 26px rgba(34,211,238,.45), 0 2px 0 rgba(255,255,255,.25) inset; text-shadow:none; }
+  .btn-primary:hover{ filter:brightness(1.08); box-shadow:0 0 34px rgba(34,211,238,.6), 0 2px 0 rgba(255,255,255,.25) inset; }
   .btn-sec{ background:rgba(34,197,94,.14); color:#bbf7d0; border-color:rgba(34,197,94,.4); box-shadow:none; }
   .btn-sec:hover{ border-color:var(--success-solid); box-shadow:0 0 18px rgba(34,197,94,.25); }
   .btn-ghost{ background:rgba(255,255,255,.04); color:var(--text-main); border-color:var(--glass-border); box-shadow:none; }
@@ -105,9 +109,9 @@
   .hero-chip.fiat{ border-color:rgba(34,197,94,.45); }
   .hero-chip.fiat .num{ color:#4ade80; }
   .hero-note{ margin:10px 0 0; position:relative; }
-  .tabsnav{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:8px;
-    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:var(--shadow); }
-  @media(min-width:860px){ .tabsnav{ display:inline-grid; grid-template-columns:repeat(6,auto); } }
+ .tabsnav{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:8px;
+   backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:var(--shadow); }
+  @media(min-width:860px){ .tabsnav{ display:inline-grid; grid-template-columns:repeat(7,auto); } }
   .tabsnav button{ border:1px solid transparent; background:transparent; color:var(--text-muted); border-radius:12px; padding:9px 18px; font-size:13px; font-weight:600; font-family:var(--font-sans); cursor:pointer; transition:all .15s ease; white-space:nowrap; }
   .tabsnav button:hover{ color:var(--text-main); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.08); }
   .tabsnav button.on{ background:linear-gradient(135deg,#f8fafc,#e2e8f0); color:#020617; border-color:transparent; box-shadow:0 0 20px rgba(34,211,238,.35); font-weight:800; }
@@ -205,14 +209,9 @@
       </div>
     </div>
     <div class="toolbar no-print" id="toolbarEl">
-      <button class="btn" id="novaOpBtn">＋ Registrar operação</button>
+      <button class="btn btn-primary" id="novaOpBtn">＋ Registrar operação</button>
       <button class="btn btn-sec" id="imgOpBtn">Importar por imagem</button>
       <button class="btn btn-sec" id="impOpBtn">Importar operações</button>
-      <button class="btn btn-sec" id="csvBtn">Exportar CSV</button>
-      <button class="btn btn-sec" id="bkpBtn">Backup</button>
-      <button class="btn btn-ghost" id="rstBtn">Restaurar</button>
-      <button class="btn btn-ghost" id="prtBtn">Imprimir / PDF</button>
-      <button class="btn btn-ghost" id="pngBtn">Capturar PNG</button>
     </div>
   </header>
 
@@ -255,6 +254,7 @@
     <button data-tab="analise">Análise</button>
     <button data-tab="relatorios">Relatórios</button>
     <button data-tab="config">Configurações</button>
+    <button data-tab="ajuda">Ajuda</button>
   </nav>
 
   <div style="height:12px"></div>
@@ -344,13 +344,26 @@
 
   <section data-panel="config" hidden>
     <div class="panel pad">
-      <h2 style="margin:0;font-size:16px">Dados e backup</h2>
+      <h2 style="margin:0;font-size:16px">Backup e restauração</h2>
       <p class="hint">Tudo fica salvo neste navegador (armazenamento local). Use backup em JSON para levar os dados para outro aparelho.</p>
-      <div class="toolbar">
-        <button class="btn btn-sec" id="csvBtn2">Exportar CSV</button>
-        <button class="btn btn-sec" id="bkpBtn2">Baixar backup JSON</button>
-        <button class="btn btn-ghost" id="rstBtn2">Restaurar backup</button>
-        <button class="btn btn-danger" id="resetBtn">Voltar às 4 operações iniciais</button>
+      <div class="grid2">
+        <div style="border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);border-radius:16px;padding:16px">
+          <p style="color:var(--fg);font-weight:700;margin:0 0 4px;font-size:14px">Backup</p>
+          <p class="hint" style="margin:0 0 12px">Salve uma cópia dos dados (operações + saldos iniciais + método) em outro lugar.</p>
+          <div class="toolbar">
+            <button class="btn btn-sec" id="csvBtn2">Exportar CSV</button>
+            <button class="btn btn-sec" id="bkpBtn2">Baixar backup JSON</button>
+            <button class="btn btn-ghost" id="pngBtn2">Capturar PNG</button>
+          </div>
+        </div>
+        <div style="border:1px solid var(--glass-border);background:rgba(255,255,255,.02);border-radius:16px;padding:16px">
+          <p style="color:var(--fg);font-weight:700;margin:0 0 4px;font-size:14px">Restauração</p>
+          <p class="hint" style="margin:0 0 12px">Recupere uma cópia salva antes. Isso substitui os dados atuais.</p>
+          <div class="toolbar">
+            <button class="btn btn-ghost" id="rstBtn2">Restaurar backup</button>
+            <button class="btn btn-danger" id="resetBtn">Voltar às 4 operações iniciais</button>
+          </div>
+        </div>
       </div>
       <div style="border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.06);border-radius:16px;padding:16px;margin-top:14px">
         <p style="color:var(--fg);font-weight:700;margin:0 0 6px;font-size:14px">Saldo inicial / ajuste de saldo por corretora</p>
@@ -375,6 +388,13 @@
         </div>
         <div id="iniLista" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
       </div>
+    </div>
+  </section>
+
+  <section data-panel="ajuda" hidden>
+    <div class="panel pad">
+      <h2 style="margin:0;font-size:16px">Ajuda</h2>
+      <p class="hint" style="margin:4px 0 0">De onde tirar os dados para lançar operações e importar planilhas.</p>
       <div style="border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);border-radius:16px;padding:16px;margin-top:14px;font-size:13px;color:var(--mut)">
         <p style="color:var(--gold);font-weight:700;margin:0 0 6px">Como obter dados das operações</p>
         <p style="margin:0">Para registrar compras e vendas, use a tela da operação, o comprovante ou um screenshot fornecido pela corretora:</p>
@@ -1628,16 +1648,12 @@ $("limpaFiltrosBtn").addEventListener("click",()=>{ F={tipo:"TODOS",corretora:"T
 $("novaOpBtn").addEventListener("click",()=>openRegistrar(null));
 $("impOpBtn").addEventListener("click",openImportar);
 $("imgOpBtn").addEventListener("click",openImagem);
-$("csvBtn").addEventListener("click",exportarCSV);
 $("csvBtn2").addEventListener("click",exportarCSV);
-$("bkpBtn").addEventListener("click",backupJSON);
 $("bkpBtn2").addEventListener("click",backupJSON);
 const trigRestore=()=>$("fileRestaurar").click();
-$("rstBtn").addEventListener("click",trigRestore);
 $("rstBtn2").addEventListener("click",trigRestore);
 $("fileRestaurar").addEventListener("change",()=>{ const f=$("fileRestaurar").files[0]; if(f) void restaurarJSON(f); });
-$("prtBtn").addEventListener("click",()=>window.print());
-$("pngBtn").addEventListener("click",()=>void capturarPNG());
+$("pngBtn2").addEventListener("click",()=>void capturarPNG());
 $("relCsvBtn").addEventListener("click",exportarMensalCSV);
 $("relPrintBtn").addEventListener("click",()=>window.print());
 $("resetBtn").addEventListener("click",()=>{ if(confirm("Voltar às 4 operações iniciais? Isso também apaga os saldos iniciais.")){ operacoes=OPERACOES_INICIAIS.map(o=>({...o})); saldosIniciais={}; renderAll(); toast("Operações iniciais restauradas.","ok"); } });
